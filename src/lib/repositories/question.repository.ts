@@ -1,6 +1,6 @@
 import { db, Transaction } from "@/lib/db";
 import { question, questionTag, tag } from "@/lib/db/schema";
-import { eq, isNull, and, inArray, desc, asc, sql } from "drizzle-orm";
+import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 export const questionRepository = {
@@ -52,13 +52,13 @@ export const questionRepository = {
     tx?: Transaction
   ) {
     const executor = tx ?? db;
-    const conditions = [isNull(question.parentQuestionId)];
+    const conditions = [];
     if (status) {
       conditions.push(eq(question.status, status));
     }
 
     return executor.query.question.findMany({
-      where: and(...conditions),
+      where: conditions.length > 0 ? and(...conditions) : undefined,
       with: {
         questionTags: {
           with: {
