@@ -52,13 +52,13 @@ export const questionRepository = {
     tx?: Transaction
   ) {
     const executor = tx ?? db;
-    const conditions = [isNull(question.parentQuestionId)];
+    const conditions = [];
     if (status) {
       conditions.push(eq(question.status, status));
     }
 
     return executor.query.question.findMany({
-      where: and(...conditions),
+      where: conditions.length > 0 ? and(...conditions) : undefined,
       with: {
         questionTags: {
           with: {
