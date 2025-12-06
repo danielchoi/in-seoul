@@ -7,6 +7,7 @@ export const defaultModel = openai.responses("gpt-5.1");
 export function createFileSearchTool(vectorStoreIds: string[]) {
   return openai.tools.fileSearch({
     vectorStoreIds,
+    maxNumResults: 50,
   });
 }
 
