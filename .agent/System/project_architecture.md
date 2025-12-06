@@ -223,11 +223,11 @@ NEXT_PUBLIC_APP_URL=          # Public app URL
 - **CLI Scripts**: `scripts/vector-store/`
 - Uses native OpenAI SDK for CRUD operations
 - File search via Vercel AI SDK's `openai.tools.fileSearch()`
-- Store ID configured via `OPENAI_VECTOR_STORE_ID` in `.env.local`
+- Store ID configured via `OPENAI_VECTOR_STORE_ID` in `.env`
 
 **CLI Usage**:
 ```bash
-pnpm vs:create "my-kb"                    # Create store (returns ID for .env.local)
+pnpm vs:create "my-kb"                    # Create store (returns ID for .env)
 pnpm vs:manage list-stores                # List all stores
 pnpm vs:manage list-files                 # List files in store
 pnpm vs:manage upload ./file.pdf          # Upload file to store
@@ -236,7 +236,7 @@ pnpm vs:manage delete-store               # Delete the store
 pnpm vs:query "question"                  # Query with file search
 ```
 
-> **Note**: All commands except `list-stores` and `vs:create` use `OPENAI_VECTOR_STORE_ID` from `.env.local`.
+> **Note**: All commands except `list-stores` and `vs:create` use `OPENAI_VECTOR_STORE_ID` from `.env`.
 
 ### 5. Theme System
 - **Provider**: `src/components/providers.tsx`

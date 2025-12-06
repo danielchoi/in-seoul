@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 // Usage: pnpm vs:create <name>
 import { config } from "dotenv";
-config({ path: ".env.local" });
+config({ path: ".env" });
 import { vectorStoreService } from "../../src/lib/services/vector-store.service";
 
 async function main() {

@@ -293,18 +293,66 @@ export const userService = {
 };
 ```
 
-### Avoid `any` - Use `unknown` Instead
+### NEVER Use `any` - Always Define Types
+
+**CRITICAL**: The use of `any` type is strictly prohibited in this codebase. Always define explicit types.
 
 ```typescript
-// Bad
+// FORBIDDEN - Never do this
 function processData(data: any) { ... }
+const result: any = fetchData();
+const items = response.data as any[];
 
-// Good
-function processData(data: unknown) {
-  if (typeof data === "string") {
-    // TypeScript knows data is string here
-  }
+// CORRECT - Define proper types
+interface ProcessedData {
+  id: string;
+  value: number;
 }
+
+function processData(data: unknown): ProcessedData {
+  // Validate and narrow the type
+  if (isProcessedData(data)) {
+    return data;
+  }
+  throw new Error("Invalid data format");
+}
+
+// Use type guards for runtime validation
+function isProcessedData(data: unknown): data is ProcessedData {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    "value" in data &&
+    typeof (data as ProcessedData).id === "string" &&
+    typeof (data as ProcessedData).value === "number"
+  );
+}
+```
+
+**Alternatives to `any`:**
+
+| Instead of `any` | Use This | When |
+|------------------|----------|------|
+| `any` | `unknown` | External/untrusted data that needs validation |
+| `any[]` | `T[]` or `unknown[]` | Arrays with defined or unknown element types |
+| `any` in generics | `T extends SomeBase` | Generic functions with constraints |
+| `any` for JSON | `Record<string, unknown>` | Parsed JSON objects |
+| `any` callback | `(...args: unknown[]) => unknown` | Generic callbacks |
+
+**Infer types from schema:**
+
+```typescript
+// Infer from Drizzle schema - no manual type definitions needed
+import { user } from "@/lib/db/schema";
+
+type User = typeof user.$inferSelect;       // For SELECT results
+type NewUser = typeof user.$inferInsert;    // For INSERT data
+
+// Infer from Zod schema
+import { z } from "zod";
+const userSchema = z.object({ name: z.string(), email: z.string().email() });
+type UserInput = z.infer<typeof userSchema>;
 ```
 
 ---
@@ -466,11 +514,13 @@ describe("userService", () => {
 
 ## Summary Checklist
 
+- [ ] **NEVER use `any` type** - Always define explicit types or use `unknown`
 - [ ] Use Service Pattern for business logic separation
 - [ ] Keep Server Components as default, Client Components minimal
 - [ ] Use Route Groups for organization
-- [ ] Infer types from Drizzle schema
-- [ ] Validate inputs with Zod
+- [ ] Infer types from Drizzle schema (`$inferSelect`, `$inferInsert`)
+- [ ] Infer types from Zod schema (`z.infer<typeof schema>`)
+- [ ] Validate inputs with Zod at system boundaries
 - [ ] Use transactions for multi-table operations
 - [ ] Create custom error classes
 - [ ] Write unit tests for services (mock repositories)

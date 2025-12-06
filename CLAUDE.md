@@ -68,6 +68,7 @@ Before you plan any implementation, always read the •agent/README first to get
 - Always update `.agent/` docs after implementing features
 - OAuth only - no email/password authentication
 - Use `pnpm dlx shadcn@latest add <component>` to add UI components
+- **NEVER use `any` type** - Always define explicit types or use `unknown` with type guards
 
 ## Coding Patterns
 
@@ -76,6 +77,6 @@ See `.agent/SOP/coding_patterns.md` for full details.
 - **Service Pattern**: Separate business logic from data access for testability
   - Controllers/Actions → Services → Repositories → Database
 - **Server Components**: Default for data fetching, keep client components minimal
-- **TypeScript**: Infer types from Drizzle schema, validate with Zod
+- **TypeScript**: NEVER use `any`. Infer types from Drizzle/Zod schema, use `unknown` for external data
 - **Transactions**: Pass `tx` to repositories for atomic multi-table operations
 - **Testing**: Mock repositories when unit testing services

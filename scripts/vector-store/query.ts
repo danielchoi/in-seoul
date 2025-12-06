@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 // Usage: pnpm vs:query "<prompt>"
 import { config } from "dotenv";
-config({ path: ".env.local" });
+config({ path: ".env" });
 import { generateText } from "ai";
 import { openai, type OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 import { ADMISSIONS_ASSISTANT_SYSTEM_PROMPT } from "../../src/lib/prompts/admissions-assistant";
@@ -18,7 +18,7 @@ async function main() {
   }
 
   if (!STORE_ID) {
-    console.error("Error: OPENAI_VECTOR_STORE_ID is not set in .env.local");
+    console.error("Error: OPENAI_VECTOR_STORE_ID is not set in .env");
     process.exit(1);
   }
 

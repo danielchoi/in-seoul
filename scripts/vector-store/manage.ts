@@ -7,7 +7,7 @@
 //   delete-file <file_id>    - Delete file from store
 //   delete-store             - Delete the vector store
 import { config } from "dotenv";
-config({ path: ".env.local" });
+config({ path: ".env" });
 import { vectorStoreService } from "../../src/lib/services/vector-store.service";
 
 const STORE_ID = process.env.OPENAI_VECTOR_STORE_ID;
@@ -23,7 +23,7 @@ Commands:
   delete-file <file_id>      Delete file from store
   delete-store               Delete the vector store
 
-Store ID is read from OPENAI_VECTOR_STORE_ID in .env.local${STORE_ID ? ` (${STORE_ID})` : " (not set)"}
+Store ID is read from OPENAI_VECTOR_STORE_ID in .env${STORE_ID ? ` (${STORE_ID})` : " (not set)"}
 
 Examples:
   pnpm vs:manage list-stores
@@ -57,7 +57,7 @@ async function main() {
 
       case "list-files": {
         if (!STORE_ID) {
-          console.error("Error: OPENAI_VECTOR_STORE_ID is not set in .env.local");
+          console.error("Error: OPENAI_VECTOR_STORE_ID is not set in .env");
           process.exit(1);
         }
         const files = await vectorStoreService.listFiles(STORE_ID);
@@ -77,7 +77,7 @@ async function main() {
 
       case "upload": {
         if (!STORE_ID) {
-          console.error("Error: OPENAI_VECTOR_STORE_ID is not set in .env.local");
+          console.error("Error: OPENAI_VECTOR_STORE_ID is not set in .env");
           process.exit(1);
         }
         const filePath = args[0];
@@ -97,7 +97,7 @@ async function main() {
 
       case "delete-file": {
         if (!STORE_ID) {
-          console.error("Error: OPENAI_VECTOR_STORE_ID is not set in .env.local");
+          console.error("Error: OPENAI_VECTOR_STORE_ID is not set in .env");
           process.exit(1);
         }
         const fileId = args[0];
@@ -114,7 +114,7 @@ async function main() {
 
       case "delete-store": {
         if (!STORE_ID) {
-          console.error("Error: OPENAI_VECTOR_STORE_ID is not set in .env.local");
+          console.error("Error: OPENAI_VECTOR_STORE_ID is not set in .env");
           process.exit(1);
         }
         await vectorStoreService.delete(STORE_ID);

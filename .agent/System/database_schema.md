@@ -152,12 +152,144 @@ Verification tokens for email/phone. Managed by better-auth.
 
 ---
 
+## Q&A Pre-generation Tables
+
+The following tables store pre-generated questions and answers for the admissions assistant.
+
+### tag
+
+Hierarchical tags for categorizing questions.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique tag identifier |
+| `name` | TEXT | NOT NULL | Tag display name |
+| `slug` | TEXT | NOT NULL, UNIQUE | URL-friendly slug |
+| `description` | TEXT | NULLABLE | Tag description |
+| `parent_id` | TEXT | FK → tag.id | Parent tag for hierarchy |
+| `order_index` | INTEGER | DEFAULT 0 | Display order |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+
+### prompt
+
+Versioned prompt templates for answer generation.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique prompt identifier |
+| `name` | TEXT | NOT NULL | Prompt name (e.g., "admissions-qa") |
+| `content` | TEXT | NOT NULL | Full prompt template |
+| `version` | INTEGER | NOT NULL | Version number |
+| `is_active` | BOOLEAN | DEFAULT false | Whether this version is active |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+
+**Unique Constraint**: `(name, version)`
+
+### question
+
+Self-referencing table for questions and follow-ups.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique question identifier |
+| `original_text` | TEXT | NOT NULL | Original question text |
+| `rephrased_text` | TEXT | NULLABLE | Optimized question for search |
+| `parent_question_id` | TEXT | FK → question.id | Parent for follow-up questions |
+| `order_index` | INTEGER | NULLABLE | Order among siblings (1-5) |
+| `status` | TEXT | NOT NULL | draft, active, archived |
+| `priority` | INTEGER | DEFAULT 0 | Generation queue priority |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+| `updated_at` | TIMESTAMPTZ | NOT NULL | Last update time |
+
+### question_tag
+
+Many-to-many join table for questions and tags.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `question_id` | TEXT | PK, FK → question.id | Question reference |
+| `tag_id` | TEXT | PK, FK → tag.id | Tag reference |
+
+**Cascade**: Both foreign keys cascade on delete.
+
+### answer
+
+Versioned answers with generation metadata.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique answer identifier |
+| `question_id` | TEXT | NOT NULL, FK → question.id | Question reference |
+| `prompt_id` | TEXT | FK → prompt.id | Prompt version used |
+| `content` | TEXT | NOT NULL | Generated answer content |
+| `model` | TEXT | NOT NULL | Model used (gpt-4o, gpt-4o-mini) |
+| `input_tokens` | INTEGER | NULLABLE | Input token count |
+| `output_tokens` | INTEGER | NULLABLE | Output token count |
+| `total_tokens` | INTEGER | NULLABLE | Total token count |
+| `cost_usd` | NUMERIC(10,6) | NULLABLE | Calculated cost in USD |
+| `latency_ms` | INTEGER | NULLABLE | Response latency in ms |
+| `is_current` | BOOLEAN | DEFAULT false | Active version flag |
+| `version` | INTEGER | NOT NULL | Version number |
+| `generated_at` | TIMESTAMPTZ | NOT NULL | When answer was generated |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+
+### answer_source
+
+Context chunks from vector store used in answer generation.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique source identifier |
+| `answer_id` | TEXT | NOT NULL, FK → answer.id | Answer reference |
+| `file_id` | TEXT | NOT NULL | OpenAI file ID |
+| `file_name` | TEXT | NOT NULL | Human-readable file name |
+| `chunk_text` | TEXT | NOT NULL | Actual text chunk used |
+| `chunk_index` | INTEGER | NULLABLE | Position in file |
+| `relevance_score` | NUMERIC(5,4) | NULLABLE | Search ranking score |
+| `metadata` | JSONB | NULLABLE | Additional file metadata |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+
+**Cascade**: Foreign key cascades on delete.
+
+---
+
 ## Relationships
 
+### Authentication Tables
 | Relationship | Type | Description |
 |--------------|------|-------------|
 | user → session | 1:N | A user can have multiple active sessions |
 | user → account | 1:N | A user can link multiple OAuth accounts |
+
+### Q&A Tables
+| Relationship | Type | Description |
+|--------------|------|-------------|
+| tag → tag (parent) | 1:N | Tags can have child tags (hierarchy) |
+| question → question (parent) | 1:N | Questions can have follow-up questions |
+| question ↔ tag | N:M | Questions can have multiple tags (via question_tag) |
+| question → answer | 1:N | A question can have multiple answer versions |
+| answer → prompt | N:1 | Answers reference the prompt version used |
+| answer → answer_source | 1:N | An answer has multiple source chunks |
+
+### Q&A ERD
+
+```
+┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│    tag      │────<│   question_tag   │>────│    question     │
+│ (hierarchy) │     │   (join table)   │     │ (self-ref)      │
+└─────────────┘     └──────────────────┘     └─────────────────┘
+      │                                              │
+      └──[parent_id]                    [parent_question_id]──┘
+                                                     │
+                                              ┌──────┴──────┐
+                                              │   answer    │──────┐
+                                              └──────┬──────┘      │
+                                                     │        [prompt_id]
+                                              ┌──────┴──────┐      │
+                                              │answer_source│   ┌──┴──┐
+                                              └─────────────┘   │prompt│
+                                                                └─────┘
+```
 
 ---
 
@@ -175,6 +307,37 @@ pnpm db:push
 
 # Open Drizzle Studio (database GUI)
 pnpm db:studio
+```
+
+## Q&A Management Commands
+
+```bash
+# List all questions
+pnpm qa:manage list [status]
+
+# Create a new question
+pnpm qa:manage create "서울대 수시 지원 자격이 어떻게 되나요?"
+
+# Generate answer for a question
+pnpm qa:manage generate <question_id>
+
+# Regenerate answer with current active prompt
+pnpm qa:manage regenerate <question_id>
+
+# Show question with current answer
+pnpm qa:manage show <question_id>
+
+# Tag management
+pnpm qa:manage tags
+pnpm qa:manage create-tag <name> [slug] [parent_id]
+
+# Prompt management
+pnpm qa:manage prompts
+pnpm qa:manage create-prompt <name> <content>
+pnpm qa:manage activate-prompt <prompt_id>
+
+# Statistics
+pnpm qa:manage stats
 ```
 
 ---

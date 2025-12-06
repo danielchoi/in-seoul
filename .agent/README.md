@@ -16,8 +16,8 @@
 pnpm install
 
 # Copy environment variables
-cp .env.example .env.local
-# Fill in the required values in .env.local
+cp .env.example .env
+# Fill in the required values in .env
 
 # Push database schema to Supabase
 pnpm db:push
@@ -115,8 +115,8 @@ pnpm test:e2e      # E2E tests (Playwright)
 | `pnpm db:studio` | Open Drizzle Studio |
 | `pnpm lint` | Run ESLint |
 | `pnpm vs:create <name>` | Create OpenAI vector store |
-| `pnpm vs:manage <cmd>` | Manage vector store files (uses `OPENAI_VECTOR_STORE_ID` from .env.local) |
-| `pnpm vs:query "prompt"` | Query with file search (uses `OPENAI_VECTOR_STORE_ID` from .env.local) |
+| `pnpm vs:manage <cmd>` | Manage vector store files (uses `OPENAI_VECTOR_STORE_ID` from .env) |
+| `pnpm vs:query "prompt"` | Query with file search (uses `OPENAI_VECTOR_STORE_ID` from .env) |
 
 ---
 
