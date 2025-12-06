@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env bun
 // Usage: pnpm qa:manage <command> [args]
 // Commands:
 //   list                    - List all questions
@@ -250,14 +250,15 @@ async function main() {
 
       case "create-tag": {
         const name = args[0];
-        const slug = args[1] || name?.toLowerCase().replace(/\s+/g, "-");
         const parentId = args[2];
 
         if (!name) {
           console.error("Error: tag name is required");
-          console.error("Usage: pnpm qa:manage create-tag <name> [slug] [parent_id]");
+          console.error("Usage: bun qa:manage create-tag <name> [slug] [parent_id]");
           process.exit(1);
         }
+
+        const slug = args[1] || name.toLowerCase().replace(/\s+/g, "-");
 
         const tag = await tagRepository.create({
           name,
@@ -316,7 +317,7 @@ async function main() {
         console.log(`  Name: ${prompt.name}`);
         console.log(`  Version: ${prompt.version}`);
         console.log("\nTo activate this prompt, run:");
-        console.log(`  pnpm qa:manage activate-prompt ${prompt.id}`);
+        console.log(`  bun qa:manage activate-prompt ${prompt.id}`);
         break;
       }
 
@@ -325,7 +326,7 @@ async function main() {
 
         if (!promptId) {
           console.error("Error: prompt_id is required");
-          console.error("Usage: pnpm qa:manage activate-prompt <prompt_id>");
+          console.error("Usage: bun qa:manage activate-prompt <prompt_id>");
           process.exit(1);
         }
 
@@ -348,6 +349,7 @@ async function main() {
         printHelp();
         break;
     }
+    process.exit(0);
   } catch (error) {
     console.error("Error:", error);
     process.exit(1);

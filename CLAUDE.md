@@ -13,18 +13,18 @@ Next.js 15 web application with AI capabilities, OAuth authentication, and Postg
 - **Auth**: better-auth (Google + Kakao OAuth only)
 - **AI**: Vercel AI SDK + OpenAI (GPT-4o)
 - **Testing**: Vitest + Playwright
-- **Package Manager**: pnpm
+- **Package Manager**: bun
 
 ## Quick Commands
 
 ```bash
-pnpm dev          # Start dev server
-pnpm build        # Production build
-pnpm test         # Run unit tests
-pnpm test:e2e     # Run E2E tests
-pnpm db:push      # Push schema to database
-pnpm db:studio    # Open Drizzle Studio
-pnpm lint         # Run ESLint
+bun dev          # Start dev server
+bun run build    # Production build
+bun test         # Run unit tests
+bun test:e2e     # Run E2E tests
+bun db:push      # Push schema to database
+bun db:studio    # Open Drizzle Studio
+bun lint         # Run ESLint
 ```
 
 ## Key Files
@@ -67,7 +67,7 @@ Before you plan any implementation, always read the •agent/README first to get
 - Do not change any code if we haven't discussed about it
 - Always update `.agent/` docs after implementing features
 - OAuth only - no email/password authentication
-- Use `pnpm dlx shadcn@latest add <component>` to add UI components
+- Use `bunx shadcn@latest add <component>` to add UI components
 - **NEVER use `any` type** - Always define explicit types or use `unknown` with type guards
 
 ## Coding Patterns

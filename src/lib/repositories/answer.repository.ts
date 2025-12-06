@@ -78,7 +78,7 @@ export const answerRepository = {
     >,
     sources: AnswerSourceInput[],
     tx?: Transaction
-  ) {
+  ): Promise<typeof answer.$inferSelect> {
     const executor = tx ?? db;
     const now = new Date();
 
@@ -108,6 +108,10 @@ export const answerRepository = {
       })
       .returning();
 
+    if (!created) {
+      throw new Error("Failed to create answer");
+    }
+
     // Add sources
     if (sources.length > 0) {
       await executor.insert(answerSource).values(
@@ -123,7 +127,7 @@ export const answerRepository = {
     return created;
   },
 
-  async setCurrent(answerId: string, tx?: Transaction) {
+  async setCurrent(answerId: string, tx?: Transaction): Promise<typeof answer.$inferSelect> {
     const executor = tx ?? db;
 
     // Get the answer to find its question
@@ -148,6 +152,7 @@ export const answerRepository = {
       .where(eq(answer.id, answerId))
       .returning();
 
+    if (!updated) throw new Error("Failed to set current answer");
     return updated;
   },
 

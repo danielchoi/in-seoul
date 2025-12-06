@@ -8,6 +8,7 @@ import {
   jsonb,
   primaryKey,
   unique,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -75,7 +76,7 @@ export const tag = pgTable("tag", {
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description"),
-  parentId: text("parent_id").references((): ReturnType<typeof text> => tag.id),
+  parentId: text("parent_id").references((): AnyPgColumn => tag.id),
   orderIndex: integer("order_index").default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
 });
@@ -114,7 +115,7 @@ export const question = pgTable("question", {
   originalText: text("original_text").notNull(),
   rephrasedText: text("rephrased_text"),
   parentQuestionId: text("parent_question_id").references(
-    (): ReturnType<typeof text> => question.id
+    (): AnyPgColumn => question.id
   ),
   orderIndex: integer("order_index"),
   status: text("status").notNull(), // draft, active, archived

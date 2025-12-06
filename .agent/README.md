@@ -13,21 +13,21 @@
 
 ```bash
 # Install dependencies
-pnpm install
+bun install
 
 # Copy environment variables
 cp .env.example .env
 # Fill in the required values in .env
 
 # Push database schema to Supabase
-pnpm db:push
+bun db:push
 
 # Run development server
-pnpm dev
+bun dev
 
 # Run tests
-pnpm test          # Unit tests (Vitest)
-pnpm test:e2e      # E2E tests (Playwright)
+bun test          # Unit tests (Vitest)
+bun test:e2e      # E2E tests (Playwright)
 ```
 
 ---
@@ -75,7 +75,7 @@ pnpm test:e2e      # E2E tests (Playwright)
 | AI | Vercel AI SDK 6 Beta + OpenAI (GPT-4o, Responses API) |
 | Vector Store | OpenAI File Search + Vector Stores |
 | Testing | Vitest + React Testing Library + Playwright |
-| Package Manager | pnpm |
+| Package Manager | bun |
 
 ---
 
@@ -107,16 +107,16 @@ pnpm test:e2e      # E2E tests (Playwright)
 
 | Command | Purpose |
 |---------|---------|
-| `pnpm dev` | Start dev server with Turbopack |
-| `pnpm build` | Production build |
-| `pnpm test` | Run unit tests |
-| `pnpm test:e2e` | Run E2E tests |
-| `pnpm db:push` | Push schema to database |
-| `pnpm db:studio` | Open Drizzle Studio |
-| `pnpm lint` | Run ESLint |
-| `pnpm vs:create <name>` | Create OpenAI vector store |
-| `pnpm vs:manage <cmd>` | Manage vector store files (uses `OPENAI_VECTOR_STORE_ID` from .env) |
-| `pnpm vs:query "prompt"` | Query with file search (uses `OPENAI_VECTOR_STORE_ID` from .env) |
+| `bun dev` | Start dev server with Turbopack |
+| `bun run build` | Production build |
+| `bun test` | Run unit tests |
+| `bun test:e2e` | Run E2E tests |
+| `bun db:push` | Push schema to database |
+| `bun db:studio` | Open Drizzle Studio |
+| `bun lint` | Run ESLint |
+| `bun vs:create <name>` | Create OpenAI vector store |
+| `bun vs:manage <cmd>` | Manage vector store files (uses `OPENAI_VECTOR_STORE_ID` from .env) |
+| `bun vs:query "prompt"` | Query with file search (uses `OPENAI_VECTOR_STORE_ID` from .env) |
 
 ---
 

@@ -55,7 +55,7 @@ export const promptRepository = {
   async create(
     data: Omit<typeof prompt.$inferInsert, "id" | "createdAt">,
     tx?: Transaction
-  ) {
+  ): Promise<typeof prompt.$inferSelect> {
     const executor = tx ?? db;
     const [created] = await executor
       .insert(prompt)
@@ -65,10 +65,11 @@ export const promptRepository = {
         createdAt: new Date(),
       })
       .returning();
+    if (!created) throw new Error("Failed to create prompt");
     return created;
   },
 
-  async setActive(id: string, tx?: Transaction) {
+  async setActive(id: string, tx?: Transaction): Promise<typeof prompt.$inferSelect> {
     const executor = tx ?? db;
 
     // Get the prompt to find its name
@@ -93,6 +94,7 @@ export const promptRepository = {
       .where(eq(prompt.id, id))
       .returning();
 
+    if (!updated) throw new Error("Failed to activate prompt");
     return updated;
   },
 

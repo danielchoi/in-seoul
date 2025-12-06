@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env bun
 // Usage: pnpm vs:query "<prompt>"
 import { config } from "dotenv";
 config({ path: ".env" });
@@ -46,6 +46,7 @@ async function main() {
     console.log(result.text);
     console.log("\n=== COMPLETE RESULT OBJECT ===");
     console.log(JSON.stringify(result, null, 2));
+    process.exit(0);
   } catch (error) {
     console.error("Error querying vector store:", error);
     process.exit(1);

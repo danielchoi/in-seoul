@@ -150,7 +150,7 @@ export const questionRepository = {
     data: Omit<typeof question.$inferInsert, "id" | "createdAt" | "updatedAt">,
     tagIds?: string[],
     tx?: Transaction
-  ) {
+  ): Promise<typeof question.$inferSelect> {
     const executor = tx ?? db;
     const now = new Date();
 
@@ -163,6 +163,10 @@ export const questionRepository = {
         updatedAt: now,
       })
       .returning();
+
+    if (!created) {
+      throw new Error("Failed to create question");
+    }
 
     // Add tags if provided
     if (tagIds && tagIds.length > 0) {
@@ -183,13 +187,14 @@ export const questionRepository = {
       Omit<typeof question.$inferInsert, "id" | "createdAt" | "updatedAt">
     >,
     tx?: Transaction
-  ) {
+  ): Promise<typeof question.$inferSelect> {
     const executor = tx ?? db;
     const [updated] = await executor
       .update(question)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(question.id, id))
       .returning();
+    if (!updated) throw new Error("Failed to update question");
     return updated;
   },
 

@@ -15,10 +15,10 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "vs:create": "tsx scripts/vector-store/create.ts",
-    "vs:manage": "tsx scripts/vector-store/manage.ts",
-    "vs:query": "tsx scripts/vector-store/query.ts",
-    "qa:manage": "tsx scripts/qa/manage.ts"
+    "vs:create": "bun scripts/vector-store/create.ts",
+    "vs:manage": "bun scripts/vector-store/manage.ts",
+    "vs:query": "bun scripts/vector-store/query.ts",
+    "qa:manage": "bun scripts/qa/manage.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.0-beta.83",
@@ -57,7 +57,6 @@
     "jsdom": "^25.0.1",
     "postcss": "^8.4.49",
     "tailwindcss": "^4.0.0-beta.8",
-    "tsx": "^4.21.0",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }

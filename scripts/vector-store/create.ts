@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env bun
 // Usage: pnpm vs:create <name>
 import { config } from "dotenv";
 config({ path: ".env" });
@@ -17,6 +17,7 @@ async function main() {
     const store = await vectorStoreService.create(name);
     console.log(`Created vector store: ${store.id}`);
     console.log(`Name: ${store.name}`);
+    process.exit(0);
   } catch (error) {
     console.error("Error creating vector store:", error);
     process.exit(1);

@@ -77,12 +77,14 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "gpt-5.1": { input: 2, output: 8 },
 };
 
+const DEFAULT_PRICING = { input: 2.5, output: 10 };
+
 function calculateCost(
   model: string,
   inputTokens: number,
   outputTokens: number
 ): number {
-  const pricing = MODEL_PRICING[model] ?? MODEL_PRICING["gpt-4o"];
+  const pricing = MODEL_PRICING[model] ?? DEFAULT_PRICING;
   const inputCost = (inputTokens / 1_000_000) * pricing.input;
   const outputCost = (outputTokens / 1_000_000) * pricing.output;
   return inputCost + outputCost;
@@ -180,8 +182,8 @@ export const qaGenerationService = {
     });
 
     const latencyMs = Date.now() - startTime;
-    const inputTokens = result.usage?.promptTokens ?? 0;
-    const outputTokens = result.usage?.completionTokens ?? 0;
+    const inputTokens = result.usage?.inputTokens ?? 0;
+    const outputTokens = result.usage?.outputTokens ?? 0;
     const totalTokens = inputTokens + outputTokens;
     const costUsd = calculateCost(model, inputTokens, outputTokens);
 
@@ -227,9 +229,12 @@ export const qaGenerationService = {
       const createdFollowUps: Array<{ question: string; questionId: string }> = [];
 
       for (let i = 0; i < followUps.length; i++) {
+        const followUpItem = followUps[i];
+        if (!followUpItem) continue;
+
         const followUp = await questionRepository.create(
           {
-            originalText: followUps[i].question,
+            originalText: followUpItem.question,
             parentQuestionId: questionId,
             orderIndex: i + 1,
             status: "draft",
@@ -238,7 +243,7 @@ export const qaGenerationService = {
           [] // No tags for follow-ups initially
         );
         createdFollowUps.push({
-          question: followUps[i].question,
+          question: followUpItem.question,
           questionId: followUp.id,
         });
       }

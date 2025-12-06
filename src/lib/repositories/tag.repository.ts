@@ -59,7 +59,7 @@ export const tagRepository = {
   async create(
     data: Omit<typeof tag.$inferInsert, "id" | "createdAt">,
     tx?: Transaction
-  ) {
+  ): Promise<typeof tag.$inferSelect> {
     const executor = tx ?? db;
     const [created] = await executor
       .insert(tag)
@@ -69,6 +69,7 @@ export const tagRepository = {
         createdAt: new Date(),
       })
       .returning();
+    if (!created) throw new Error("Failed to create tag");
     return created;
   },
 
@@ -76,13 +77,14 @@ export const tagRepository = {
     id: string,
     data: Partial<Omit<typeof tag.$inferInsert, "id" | "createdAt">>,
     tx?: Transaction
-  ) {
+  ): Promise<typeof tag.$inferSelect> {
     const executor = tx ?? db;
     const [updated] = await executor
       .update(tag)
       .set(data)
       .where(eq(tag.id, id))
       .returning();
+    if (!updated) throw new Error("Failed to update tag");
     return updated;
   },
 
