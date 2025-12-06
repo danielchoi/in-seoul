@@ -69,13 +69,13 @@ export interface GenerateAnswerResult {
   };
 }
 
-// Pricing per 1M tokens (as of Dec 2024)
+// Pricing per 1M tokens (as of Dec 2025, Standard tier)
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "gpt-4o": { input: 2.5, output: 10 },
   "gpt-4o-mini": { input: 0.15, output: 0.6 },
   "gpt-4.1": { input: 2, output: 8 },
-  "gpt-5.1": { input: 2, output: 8 },
-  "gpt-5-nano": { input: 0.1, output: 0.4 },
+  "gpt-5.1": { input: 1.25, output: 10 },
+  "gpt-5-nano": { input: 0.05, output: 0.4 },
 };
 
 const DEFAULT_PRICING = { input: 2.5, output: 10 };
