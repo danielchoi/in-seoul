@@ -4,8 +4,21 @@
 
 ## Project Status
 
-**Current Phase**: Active Development
-**Last Updated**: 2025-12-06
+**Current Phase**: Active Development - Q&A Pre-generation Feature
+**Last Updated**: 2025-12-07
+
+---
+
+## About This Project
+
+**in-seoul** is a Korean university admissions Q&A assistant. It uses OpenAI's file search to retrieve relevant information from uploaded documents (admissions guidelines, etc.) and generates answers using GPT models.
+
+**Key Features**:
+- Pre-generated Q&A with versioned answers
+- Follow-up question generation
+- Question rephrasing for better search
+- Vector store integration for document retrieval
+- Source attribution from retrieved documents
 
 ---
 
@@ -38,8 +51,8 @@ bun test:e2e      # E2E tests (Playwright)
 
 | Document | Description |
 |----------|-------------|
-| [Project Architecture](./System/project_architecture.md) | Tech stack, project structure, API routes, environment variables, integration points |
-| [Database Schema](./System/database_schema.md) | ER diagram, table definitions, relationships, Drizzle usage examples |
+| [Project Architecture](./System/project_architecture.md) | Tech stack, project structure, API routes, environment variables, integration points, architecture layers |
+| [Database Schema](./System/database_schema.md) | ER diagram, table definitions, relationships, repository methods, Drizzle usage examples |
 
 ### Tasks & PRDs
 
@@ -67,7 +80,7 @@ bun test:e2e      # E2E tests (Playwright)
 
 | Category | Technology |
 |----------|------------|
-| Framework | Next.js 15.1.0 (App Router + Turbopack) |
+| Framework | Next.js 15.5.7 (App Router + Turbopack) |
 | Language | TypeScript 5.7.2 (Strict mode) |
 | Styling | Tailwind CSS 4.0 + shadcn/ui (new-york) |
 | Database | PostgreSQL (Supabase) via Drizzle ORM |
@@ -87,10 +100,30 @@ bun test:e2e      # E2E tests (Playwright)
 | Auth config (server) | `src/lib/auth.ts` |
 | Auth hooks (client) | `src/lib/auth-client.ts` |
 | AI models config | `src/lib/ai.ts` |
+| Q&A generation service | `src/lib/services/qa-generation.service.ts` |
 | Vector store service | `src/lib/services/vector-store.service.ts` |
+| System prompt | `src/lib/prompts/admissions-assistant.ts` |
 | Theme provider | `src/components/providers.tsx` |
 | Global styles | `src/app/globals.css` |
 | Environment template | `.env.example` |
+
+### Repositories
+| Repository | Purpose |
+|------------|---------|
+| `src/lib/repositories/question.repository.ts` | Question CRUD + relations |
+| `src/lib/repositories/answer.repository.ts` | Answer versioning + sources |
+| `src/lib/repositories/tag.repository.ts` | Hierarchical tags |
+| `src/lib/repositories/prompt.repository.ts` | Versioned prompts |
+
+---
+
+## Frontend Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Home page |
+| `/qna` | Q&A list - displays all active questions |
+| `/qna/[id]` | Q&A detail - shows question with versioned answers, tags, sources, and follow-ups |
 
 ---
 
@@ -115,8 +148,25 @@ bun test:e2e      # E2E tests (Playwright)
 | `bun db:studio` | Open Drizzle Studio |
 | `bun lint` | Run ESLint |
 | `bun vs:create <name>` | Create OpenAI vector store |
-| `bun vs:manage <cmd>` | Manage vector store files (uses `OPENAI_VECTOR_STORE_ID` from .env) |
-| `bun vs:query "prompt"` | Query with file search (uses `OPENAI_VECTOR_STORE_ID` from .env) |
+| `bun vs:manage <cmd>` | Manage vector store files |
+| `bun vs:query "prompt"` | Query with file search |
+| `bun qa:manage <cmd>` | Manage Q&A content |
+
+### Q&A Management Commands
+
+```bash
+bun qa:manage list [status]              # List questions (draft/active/archived)
+bun qa:manage create "question"          # Create new question
+bun qa:manage generate <id>              # Generate answer for question
+bun qa:manage regenerate <id>            # Regenerate with current prompt
+bun qa:manage show <id>                  # Show question with answer
+bun qa:manage tags                       # List all tags
+bun qa:manage create-tag <name>          # Create tag
+bun qa:manage prompts                    # List all prompts
+bun qa:manage create-prompt <name> <content>  # Create prompt version
+bun qa:manage activate-prompt <id>       # Activate prompt
+bun qa:manage stats                      # Show question statistics
+```
 
 ---
 
@@ -143,8 +193,49 @@ bun test:e2e      # E2E tests (Playwright)
 
 1. **New to the project?** Start with [Project Architecture](./System/project_architecture.md)
 2. **Setting up locally?** Follow Quick Start above
-3. **Building a feature?** Check [Tasks/](./Tasks/) for PRDs
-4. **Need how-to guides?** See [SOP/](./SOP/) for procedures
+3. **Understanding the database?** See [Database Schema](./System/database_schema.md)
+4. **Building a feature?** Check [Tasks/](./Tasks/) for PRDs
+5. **Need how-to guides?** See [SOP/](./SOP/) for procedures
+
+---
+
+## Core Workflows
+
+### Adding a New Question
+```bash
+# 1. Create the question (auto-rephrases)
+bun qa:manage create "서울대 수시 지원 자격이 어떻게 되나요?"
+
+# 2. Generate answer (uses vector store search)
+bun qa:manage generate <question_id>
+
+# 3. View the result
+bun qa:manage show <question_id>
+```
+
+### Managing Vector Store
+```bash
+# Upload admissions documents
+bun vs:manage upload ./docs/서울대_2026_모집요강.pdf
+
+# Query to test
+bun vs:query "서울대 수시 지원자격"
+```
+
+### Prompt Versioning
+```bash
+# List current prompts
+bun qa:manage prompts
+
+# Create new version
+bun qa:manage create-prompt admissions-qa "New prompt content..."
+
+# Activate it
+bun qa:manage activate-prompt <prompt_id>
+
+# Regenerate all answers with new prompt
+# (requires custom script or manual regeneration)
+```
 
 ---
 
