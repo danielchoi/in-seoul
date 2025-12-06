@@ -1,12 +1,24 @@
 import { openai } from "@ai-sdk/openai";
 
-// Default OpenAI model configuration
-export const defaultModel = openai("gpt-4o");
+// Default OpenAI model using Responses API (supports file search, web search)
+export const defaultModel = openai.responses("gpt-5.1");
 
-// Alternative models for different use cases
-export const models = {
-  // Best for complex reasoning and generation
-  gpt4o: openai("gpt-4o"),
-  // Fast and cost-effective for simpler tasks
-  gpt4oMini: openai("gpt-4o-mini"),
-};
+// File search tool factory for RAG with OpenAI vector stores
+export function createFileSearchTool(vectorStoreIds: string[]) {
+  return openai.tools.fileSearch({
+    vectorStoreIds,
+  });
+}
+
+// Web search tool factory for grounding responses with real-time information
+export function createWebSearchTool(options?: {
+  searchContextSize?: "low" | "medium" | "high";
+  userLocation?: {
+    type: "approximate";
+    country?: string;
+    city?: string;
+    region?: string;
+  };
+}) {
+  return openai.tools.webSearchPreview(options ?? {});
+}
