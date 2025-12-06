@@ -75,6 +75,7 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "gpt-4o-mini": { input: 0.15, output: 0.6 },
   "gpt-4.1": { input: 2, output: 8 },
   "gpt-5.1": { input: 2, output: 8 },
+  "gpt-5-nano": { input: 0.1, output: 0.4 },
 };
 
 const DEFAULT_PRICING = { input: 2.5, output: 10 };
@@ -127,7 +128,7 @@ export const qaGenerationService = {
     const {
       questionId,
       promptId,
-      model = "gpt-4o",
+      model = "gpt-5.1",
       generateFollowUps = true,
       rephraseQuestion = true,
     } = options;
@@ -271,7 +272,7 @@ export const qaGenerationService = {
   async generateFollowUpQuestions(
     questionText: string,
     answerText: string,
-    model: string = "gpt-4o-mini"
+    model: string = "gpt-5-nano"
   ): Promise<Array<{ question: string; reason: string }>> {
     const result = await generateObject({
       model: openai(model),
@@ -297,7 +298,7 @@ Generate 5 follow-up questions in Korean that:
 
   async rephraseQuestion(
     originalQuestion: string,
-    model: string = "gpt-4o-mini"
+    model: string = "gpt-5-nano"
   ): Promise<{ rephrasedQuestion: string; isOptimized: boolean; reason: string }> {
     const result = await generateObject({
       model: openai(model),
