@@ -6,20 +6,20 @@ import { answerRepository, type AnswerSourceInput } from "@/lib/repositories/ans
 import { promptRepository } from "@/lib/repositories/prompt.repository";
 import { ADMISSIONS_ASSISTANT_SYSTEM_PROMPT } from "@/lib/prompts/admissions-assistant";
 
-// Type for file search results from OpenAI Responses API
+// Type for file search results from AI SDK tool-result
 interface FileSearchResult {
-  file_id: string;
+  fileId: string;
   filename: string;
   text: string;
   score?: number;
   attributes?: Record<string, unknown>;
 }
 
-interface FileSearchContent {
-  type: "file_search_call";
-  fileSearchCall: {
-    id: string;
-    status: string;
+interface FileSearchToolResult {
+  type: "tool-result";
+  toolName: "file_search";
+  output: {
+    queries?: string[];
     results?: FileSearchResult[];
   };
 }
@@ -101,14 +101,16 @@ function extractSourcesFromContent(
       typeof item === "object" &&
       item !== null &&
       "type" in item &&
-      (item as { type: string }).type === "file_search_call"
+      "toolName" in item &&
+      (item as { type: string }).type === "tool-result" &&
+      (item as { toolName: string }).toolName === "file_search"
     ) {
-      const fileSearchContent = item as FileSearchContent;
-      const results = fileSearchContent.fileSearchCall?.results ?? [];
+      const toolResult = item as FileSearchToolResult;
+      const results = toolResult.output?.results ?? [];
 
       for (const result of results) {
         sources.push({
-          fileId: result.file_id,
+          fileId: result.fileId,
           fileName: result.filename,
           chunkText: result.text,
           relevanceScore: result.score?.toString() ?? null,
