@@ -1,6 +1,6 @@
 import { db, Transaction } from "@/lib/db";
 import { question, questionTag, tag } from "@/lib/db/schema";
-import { eq, isNull, and, inArray, desc, asc, sql } from "drizzle-orm";
+import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 export const questionRepository = {
