@@ -31,7 +31,7 @@ async function main() {
       system: ADMISSIONS_ASSISTANT_SYSTEM_PROMPT,
       prompt,
       tools: {
-        file_search: openai.tools.fileSearch({ vectorStoreIds: [STORE_ID] }),
+        file_search: openai.tools.fileSearch({ vectorStoreIds: [STORE_ID], maxNumResults: 50 }),
       },
       providerOptions: {
         openai: { include: ["file_search_call.results"] } satisfies OpenAIResponsesProviderOptions,

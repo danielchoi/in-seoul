@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { questionRepository } from "@/lib/repositories/question.repository";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Markdown } from "@/components/ui/markdown";
-import { ChevronLeft, MessageCircle, FileText } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
+import { AnswerVersions } from "@/components/qna/answer-versions";
 
 interface QnaDetailPageProps {
   params: Promise<{ id: string }>;
@@ -12,7 +12,7 @@ interface QnaDetailPageProps {
 
 export async function generateMetadata({ params }: QnaDetailPageProps) {
   const { id } = await params;
-  const question = await questionRepository.findByIdWithCurrentAnswer(id);
+  const question = await questionRepository.findByIdWithAllAnswers(id);
 
   if (!question) {
     return { title: "Question Not Found" };
@@ -27,15 +27,13 @@ export async function generateMetadata({ params }: QnaDetailPageProps) {
 export default async function QnaDetailPage({ params }: QnaDetailPageProps) {
   const { id } = await params;
   const [question, followUps] = await Promise.all([
-    questionRepository.findByIdWithCurrentAnswer(id),
+    questionRepository.findByIdWithAllAnswers(id),
     questionRepository.findFollowUps(id),
   ]);
 
   if (!question) {
     notFound();
   }
-
-  const currentAnswer = question.answers[0];
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
@@ -72,44 +70,7 @@ export default async function QnaDetailPage({ params }: QnaDetailPageProps) {
         )}
       </div>
 
-      {currentAnswer ? (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
-              Answer
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Markdown content={currentAnswer.content} />
-
-            {currentAnswer.sources && currentAnswer.sources.length > 0 && (
-              <div className="mt-6 pt-6 border-t">
-                <h3 className="text-sm font-medium flex items-center gap-2 mb-3">
-                  <FileText className="h-4 w-4" />
-                  Sources
-                </h3>
-                <ul className="space-y-2">
-                  {currentAnswer.sources.map((source) => (
-                    <li
-                      key={source.id}
-                      className="text-sm text-muted-foreground"
-                    >
-                      {source.fileName}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="mb-8">
-          <CardContent className="py-8 text-center text-muted-foreground">
-            No answer available yet.
-          </CardContent>
-        </Card>
-      )}
+      <AnswerVersions answers={question.answers} />
 
       {followUps.length > 0 && (
         <div>

@@ -47,6 +47,28 @@ export const questionRepository = {
     return result;
   },
 
+  async findByIdWithAllAnswers(id: string, tx?: Transaction) {
+    const executor = tx ?? db;
+    const result = await executor.query.question.findFirst({
+      where: eq(question.id, id),
+      with: {
+        answers: {
+          with: {
+            sources: true,
+            prompt: true,
+          },
+          orderBy: (answer, { desc }) => [desc(answer.version)],
+        },
+        questionTags: {
+          with: {
+            tag: true,
+          },
+        },
+      },
+    });
+    return result;
+  },
+
   async findRootQuestions(
     status?: string,
     tx?: Transaction

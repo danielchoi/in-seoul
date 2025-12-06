@@ -175,7 +175,7 @@ export const qaGenerationService = {
       system: systemPrompt,
       prompt: questionText,
       tools: {
-        file_search: openai.tools.fileSearch({ vectorStoreIds: [vectorStoreId] }),
+        file_search: openai.tools.fileSearch({ vectorStoreIds: [vectorStoreId], maxNumResults: 50 }),
       },
       providerOptions: {
         openai: {
@@ -279,20 +279,13 @@ export const qaGenerationService = {
     const result = await generateObject({
       model: openai(model),
       schema: followUpQuestionsSchema,
-      prompt: `Based on the following question and answer about Korean college admissions, generate 5 relevant follow-up questions that a user might ask next.
+      prompt: `질문과 답변을 바탕으로 사용자가 다음에 궁금해할 만한 후속 질문 5개를 생성하세요.
 
-Original Question:
-${questionText}
+질문: ${questionText}
 
-Answer:
-${answerText}
+답변: ${answerText}
 
-Generate 5 follow-up questions in Korean that:
-1. Dig deeper into specific details mentioned in the answer
-2. Ask about related topics or requirements
-3. Clarify potential edge cases or exceptions
-4. Help the user make a decision or take action
-5. Cover different aspects (dates, requirements, documents, etc.)`,
+간단하고 명확한 한국어 질문으로 작성하세요.`,
     });
 
     return result.object.followUpQuestions;
@@ -302,24 +295,22 @@ Generate 5 follow-up questions in Korean that:
     originalQuestion: string,
     model: string = "gpt-5-nano"
   ): Promise<{ rephrasedQuestion: string; isOptimized: boolean; reason: string }> {
+    // Korean admission year: if before March, asking about upcoming year
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const admissionYear = now.getMonth() < 2 ? currentYear : currentYear + 1;
+
     const result = await generateObject({
       model: openai(model),
       schema: rephrasedQuestionSchema,
-      prompt: `You are optimizing questions about Korean college admissions for better vector store search results.
+      prompt: `대입 질문을 검색에 최적화된 형태로 다듬으세요. 간결하게 유지하세요.
 
-Original Question:
-${originalQuestion}
+현재: ${currentYear}년 ${now.getMonth() + 1}월
+기본 입시연도: ${admissionYear}학년도 (연도 언급 없으면 이 연도로 가정)
 
-Analyze the question and:
-1. If it's already clear and specific, keep it as is (set isOptimized to false)
-2. If it can be improved, rephrase it to be more specific and searchable
+질문: ${originalQuestion}
 
-Optimization guidelines:
-- Add specific context if implied (e.g., "2025학년도", "수시", "정시")
-- Clarify ambiguous terms
-- Make the question more precise for document retrieval
-- Keep the core intent the same
-- Response must be in Korean`,
+이미 명확하면 그대로 두세요 (isOptimized: false).`,
     });
 
     return result.object;
