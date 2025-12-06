@@ -57,7 +57,7 @@
 ### Development Tools
 | Tool | Purpose |
 |------|---------|
-| pnpm | Package manager |
+| bun | Package manager & runtime |
 | ESLint 9.16.0 | Code linting |
 | Turbopack | Fast dev server bundler |
 
@@ -214,7 +214,7 @@ NEXT_PUBLIC_APP_URL=          # Public app URL
 - **Config**: `src/lib/ai.ts`
 - **API route**: `src/app/api/ai/chat/route.ts`
 - **Vector Store Service**: `src/lib/services/vector-store.service.ts`
-- Models: `gpt-4o` (default), `gpt-4o-mini` via Responses API
+- Models: `gpt-5.1` (default), `gpt-5-nano` via Responses API
 - Streaming responses via `streamText()` + `toUIMessageStreamResponse()`
 - Tools: `openai.tools.fileSearch()`, `openai.tools.webSearchPreview()`
 
@@ -227,13 +227,13 @@ NEXT_PUBLIC_APP_URL=          # Public app URL
 
 **CLI Usage**:
 ```bash
-pnpm vs:create "my-kb"                    # Create store (returns ID for .env)
-pnpm vs:manage list-stores                # List all stores
-pnpm vs:manage list-files                 # List files in store
-pnpm vs:manage upload ./file.pdf          # Upload file to store
-pnpm vs:manage delete-file <file_id>      # Delete file from store
-pnpm vs:manage delete-store               # Delete the store
-pnpm vs:query "question"                  # Query with file search
+bun vs:create "my-kb"                    # Create store (returns ID for .env)
+bun vs:manage list-stores                # List all stores
+bun vs:manage list-files                 # List files in store
+bun vs:manage upload ./file.pdf          # Upload file to store
+bun vs:manage delete-file <file_id>      # Delete file from store
+bun vs:manage delete-store               # Delete the store
+bun vs:query "question"                  # Query with file search
 ```
 
 > **Note**: All commands except `list-stores` and `vs:create` use `OPENAI_VECTOR_STORE_ID` from `.env`.

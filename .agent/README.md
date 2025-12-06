@@ -5,7 +5,7 @@
 ## Project Status
 
 **Current Phase**: Active Development
-**Last Updated**: 2025-12-05
+**Last Updated**: 2025-12-06
 
 ---
 
@@ -72,7 +72,7 @@ bun test:e2e      # E2E tests (Playwright)
 | Styling | Tailwind CSS 4.0 + shadcn/ui (new-york) |
 | Database | PostgreSQL (Supabase) via Drizzle ORM |
 | Auth | better-auth (Google + Kakao OAuth) |
-| AI | Vercel AI SDK 6 Beta + OpenAI (GPT-4o, Responses API) |
+| AI | Vercel AI SDK 6 Beta + OpenAI (GPT-5.1, Responses API) |
 | Vector Store | OpenAI File Search + Vector Stores |
 | Testing | Vitest + React Testing Library + Playwright |
 | Package Manager | bun |
