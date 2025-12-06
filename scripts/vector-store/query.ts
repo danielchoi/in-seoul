@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// Usage: pnpm vs:query "<prompt>"
+// Usage: bun vs:query "<prompt>"
 import { config } from "dotenv";
 config({ path: ".env" });
 import { generateText } from "ai";
@@ -12,8 +12,8 @@ async function main() {
   const prompt = process.argv.slice(2).join(" ");
 
   if (!prompt) {
-    console.error('Usage: pnpm vs:query "<prompt>"');
-    console.error('Example: pnpm vs:query "What does the guide say about authentication?"');
+    console.error('Usage: bun vs:query "<prompt>"');
+    console.error('Example: bun vs:query "What does the guide say about authentication?"');
     process.exit(1);
   }
 

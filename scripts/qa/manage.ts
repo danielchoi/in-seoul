@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// Usage: pnpm qa:manage <command> [args]
+// Usage: bun qa:manage <command> [args]
 // Commands:
 //   list                    - List all questions
 //   create <question>       - Create a new question
@@ -18,7 +18,7 @@ import { qaGenerationService } from "../../src/lib/services/qa-generation.servic
 
 function printHelp() {
   console.log(`
-Usage: pnpm qa:manage <command> [args]
+Usage: bun qa:manage <command> [args]
 
 Commands:
   list [status]           List all questions (status: draft, active, archived)
@@ -37,13 +37,13 @@ Prompt Commands:
   activate-prompt <id>    Set prompt as active
 
 Examples:
-  pnpm qa:manage list
-  pnpm qa:manage list active
-  pnpm qa:manage create "서울대 수시 지원 자격이 어떻게 되나요?"
-  pnpm qa:manage generate abc123
-  pnpm qa:manage show abc123
-  pnpm qa:manage tags
-  pnpm qa:manage create-tag "입시" admissions
+  bun qa:manage list
+  bun qa:manage list active
+  bun qa:manage create "서울대 수시 지원 자격이 어떻게 되나요?"
+  bun qa:manage generate abc123
+  bun qa:manage show abc123
+  bun qa:manage tags
+  bun qa:manage create-tag "입시" admissions
 `);
 }
 
@@ -79,7 +79,7 @@ async function main() {
         const questionText = args.join(" ");
         if (!questionText) {
           console.error("Error: question text is required");
-          console.error("Usage: pnpm qa:manage create <question>");
+          console.error("Usage: bun qa:manage create <question>");
           process.exit(1);
         }
 
@@ -98,7 +98,7 @@ async function main() {
           }
           console.log(`  Status: ${result.question.status}`);
           console.log("\nTo generate an answer, run:");
-          console.log(`  pnpm qa:manage generate ${result.question.id}`);
+          console.log(`  bun qa:manage generate ${result.question.id}`);
         }
         break;
       }
@@ -107,7 +107,7 @@ async function main() {
         const questionId = args[0];
         if (!questionId) {
           console.error("Error: question_id is required");
-          console.error("Usage: pnpm qa:manage generate <question_id>");
+          console.error("Usage: bun qa:manage generate <question_id>");
           process.exit(1);
         }
 
@@ -167,7 +167,7 @@ async function main() {
         const questionId = args[0];
         if (!questionId) {
           console.error("Error: question_id is required");
-          console.error("Usage: pnpm qa:manage regenerate <question_id>");
+          console.error("Usage: bun qa:manage regenerate <question_id>");
           process.exit(1);
         }
 
@@ -184,7 +184,7 @@ async function main() {
         const questionId = args[0];
         if (!questionId) {
           console.error("Error: question_id is required");
-          console.error("Usage: pnpm qa:manage show <question_id>");
+          console.error("Usage: bun qa:manage show <question_id>");
           process.exit(1);
         }
 
@@ -297,7 +297,7 @@ async function main() {
 
         if (!name || !content) {
           console.error("Error: name and content are required");
-          console.error("Usage: pnpm qa:manage create-prompt <name> <content>");
+          console.error("Usage: bun qa:manage create-prompt <name> <content>");
           process.exit(1);
         }
 

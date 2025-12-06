@@ -2,7 +2,7 @@
 
 > **Current Version**: AI SDK 6.0.0-beta (as of Dec 2025)
 >
-> Install: `pnpm add ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta`
+> Install: `bun add ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta`
 
 ---
 

@@ -297,47 +297,47 @@ Context chunks from vector store used in answer generation.
 
 ```bash
 # Generate migrations from schema changes
-pnpm db:generate
+bun db:generate
 
 # Apply migrations to database
-pnpm db:migrate
+bun db:migrate
 
 # Push schema directly (dev only, no migration files)
-pnpm db:push
+bun db:push
 
 # Open Drizzle Studio (database GUI)
-pnpm db:studio
+bun db:studio
 ```
 
 ## Q&A Management Commands
 
 ```bash
 # List all questions
-pnpm qa:manage list [status]
+bun qa:manage list [status]
 
 # Create a new question
-pnpm qa:manage create "서울대 수시 지원 자격이 어떻게 되나요?"
+bun qa:manage create "서울대 수시 지원 자격이 어떻게 되나요?"
 
 # Generate answer for a question
-pnpm qa:manage generate <question_id>
+bun qa:manage generate <question_id>
 
 # Regenerate answer with current active prompt
-pnpm qa:manage regenerate <question_id>
+bun qa:manage regenerate <question_id>
 
 # Show question with current answer
-pnpm qa:manage show <question_id>
+bun qa:manage show <question_id>
 
 # Tag management
-pnpm qa:manage tags
-pnpm qa:manage create-tag <name> [slug] [parent_id]
+bun qa:manage tags
+bun qa:manage create-tag <name> [slug] [parent_id]
 
 # Prompt management
-pnpm qa:manage prompts
-pnpm qa:manage create-prompt <name> <content>
-pnpm qa:manage activate-prompt <prompt_id>
+bun qa:manage prompts
+bun qa:manage create-prompt <name> <content>
+bun qa:manage activate-prompt <prompt_id>
 
 # Statistics
-pnpm qa:manage stats
+bun qa:manage stats
 ```
 
 ---
@@ -388,8 +388,8 @@ const googleAccount = await db.query.account.findFirst({
 When adding application-specific tables:
 
 1. Add table definition to `src/lib/db/schema.ts`
-2. Run `pnpm db:generate` to create migration
-3. Run `pnpm db:migrate` to apply migration
+2. Run `bun db:generate` to create migration
+3. Run `bun db:migrate` to apply migration
 4. Update this documentation
 
 **Example - Adding a posts table:**

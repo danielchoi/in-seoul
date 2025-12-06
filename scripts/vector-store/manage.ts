@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// Usage: pnpm vs:manage <command> [args]
+// Usage: bun vs:manage <command> [args]
 // Commands:
 //   list-stores              - List all vector stores
 //   list-files               - List files in the store
@@ -14,7 +14,7 @@ const STORE_ID = process.env.OPENAI_VECTOR_STORE_ID;
 
 function printHelp() {
   console.log(`
-Usage: pnpm vs:manage <command> [args]
+Usage: bun vs:manage <command> [args]
 
 Commands:
   list-stores                List all vector stores
@@ -26,10 +26,10 @@ Commands:
 Store ID is read from OPENAI_VECTOR_STORE_ID in .env${STORE_ID ? ` (${STORE_ID})` : " (not set)"}
 
 Examples:
-  pnpm vs:manage list-stores
-  pnpm vs:manage list-files
-  pnpm vs:manage upload ./docs/guide.pdf
-  pnpm vs:manage delete-file file_xyz789
+  bun vs:manage list-stores
+  bun vs:manage list-files
+  bun vs:manage upload ./docs/guide.pdf
+  bun vs:manage delete-file file_xyz789
 `);
 }
 
@@ -83,7 +83,7 @@ async function main() {
         const filePath = args[0];
         if (!filePath) {
           console.error("Error: file_path is required");
-          console.error("Usage: pnpm vs:manage upload <file_path>");
+          console.error("Usage: bun vs:manage upload <file_path>");
           process.exit(1);
         }
 
@@ -103,7 +103,7 @@ async function main() {
         const fileId = args[0];
         if (!fileId) {
           console.error("Error: file_id is required");
-          console.error("Usage: pnpm vs:manage delete-file <file_id>");
+          console.error("Usage: bun vs:manage delete-file <file_id>");
           process.exit(1);
         }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// Usage: pnpm vs:create <name>
+// Usage: bun vs:create <name>
 import { config } from "dotenv";
 config({ path: ".env" });
 import { vectorStoreService } from "../../src/lib/services/vector-store.service";
@@ -8,8 +8,8 @@ async function main() {
   const name = process.argv[2];
 
   if (!name) {
-    console.error("Usage: pnpm vs:create <name>");
-    console.error("Example: pnpm vs:create my-knowledge-base");
+    console.error("Usage: bun vs:create <name>");
+    console.error("Example: bun vs:create my-knowledge-base");
     process.exit(1);
   }
 
