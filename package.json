@@ -24,6 +24,7 @@
     "@ai-sdk/openai": "3.0.0-beta.83",
     "@ai-sdk/react": "3.0.0-beta.132",
     "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-tabs": "^1.1.13",
     "@tailwindcss/typography": "^0.5.19",
     "ai": "6.0.0-beta.131",
     "better-auth": "^1.1.3",
