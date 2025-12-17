@@ -5,7 +5,7 @@
 ## Project Status
 
 **Current Phase**: Active Development
-**Last Updated**: 2025-12-17
+**Last Updated**: 2025-12-18
 
 ---
 
@@ -89,6 +89,8 @@ bun test:e2e      # E2E tests (Playwright)
 | AI models config | `src/lib/ai.ts` |
 | Vector store service | `src/lib/services/vector-store.service.ts` |
 | Q&A generation service | `src/lib/services/qa-generation.service.ts` |
+| Heatmap service | `src/lib/services/heatmap.service.ts` |
+| Heatmap components | `src/components/heatmap/` |
 | Repositories | `src/lib/repositories/` |
 | Theme provider | `src/components/providers.tsx` |
 | Global styles | `src/app/globals.css` |
@@ -108,6 +110,7 @@ bun test:e2e      # E2E tests (Playwright)
 | Route | Purpose |
 |-------|---------|
 | `/` | Home page |
+| `/heatmap/susi` | 수시 admission statistics heatmap |
 | `/qna` | Q&A pre-generation list |
 | `/qna/[id]` | Question detail with versioned answers |
 

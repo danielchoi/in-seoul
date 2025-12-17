@@ -1,12 +1,12 @@
 # Project Architecture
 
-> **Status**: Initialized - Base project scaffolded
+> **Status**: Active Development - Heatmap feature added
 
 ## Project Overview
 
 **Project Name**: in-seoul
 **Type**: Next.js Web Application
-**Purpose**: TBD (to be defined based on business requirements)
+**Purpose**: University admission guidance platform for Seoul-area universities, providing Q&A assistance and admission statistics visualization (heatmap)
 
 ---
 
@@ -78,6 +78,11 @@ in-seoul/
 │   │   ├── api/
 │   │   │   ├── auth/[...all]/route.ts  # better-auth endpoints
 │   │   │   └── ai/chat/route.ts        # AI chat streaming endpoint
+│   │   ├── heatmap/                # Admission heatmap pages
+│   │   │   └── susi/               # 수시 (early admission) heatmap
+│   │   │       ├── page.tsx        # Heatmap visualization
+│   │   │       ├── loading.tsx     # Loading skeleton
+│   │   │       └── error.tsx       # Error boundary
 │   │   ├── qna/                    # Q&A pre-generation pages
 │   │   │   ├── [id]/page.tsx       # Question detail page
 │   │   │   ├── loading.tsx         # Loading state
@@ -86,6 +91,16 @@ in-seoul/
 │   │   ├── layout.tsx              # Root layout with providers
 │   │   └── page.tsx                # Home page
 │   ├── components/
+│   │   ├── heatmap/                # Heatmap visualization components
+│   │   │   ├── GpaSlider.tsx       # GPA input slider (1-9 scale)
+│   │   │   ├── UniversitySelector.tsx  # Multi-select university picker
+│   │   │   ├── HeatmapFilters.tsx  # Combined filter controls
+│   │   │   ├── HeatmapGrid.tsx     # Main grid layout
+│   │   │   ├── HeatmapLegend.tsx   # Color legend for cut-offs
+│   │   │   ├── UniversityGroup.tsx # University grouping in grid
+│   │   │   ├── AdmissionTypeColumn.tsx # Admission type column
+│   │   │   ├── DepartmentRow.tsx   # Department row with cells
+│   │   │   └── index.ts            # Barrel exports
 │   │   ├── ui/                     # shadcn/ui components
 │   │   ├── providers.tsx           # Theme provider wrapper
 │   │   └── theme-toggle.tsx        # Dark/light mode toggle
@@ -96,12 +111,18 @@ in-seoul/
 │   │   ├── prompts/                # AI prompt templates
 │   │   ├── repositories/           # Data access layer
 │   │   │   ├── answer.repository.ts
+│   │   │   ├── heatmap.repository.ts   # Admission statistics queries
 │   │   │   ├── prompt.repository.ts
 │   │   │   ├── question.repository.ts
 │   │   │   └── tag.repository.ts
 │   │   ├── services/
+│   │   │   ├── heatmap.service.ts      # Heatmap data processing
 │   │   │   ├── qa-generation.service.ts  # Q&A generation with RAG
 │   │   │   └── vector-store.service.ts   # OpenAI vector store management
+│   │   ├── types/
+│   │   │   └── heatmap.types.ts    # Heatmap TypeScript types
+│   │   ├── utils/
+│   │   │   └── heatmap-filters.ts  # URL state for filters
 │   │   ├── ai.ts                   # AI model config (Responses API)
 │   │   ├── auth.ts                 # better-auth server config
 │   │   ├── auth-client.ts          # better-auth client hooks
@@ -109,6 +130,10 @@ in-seoul/
 │   ├── hooks/                      # Custom React hooks
 │   └── types/                      # TypeScript type definitions
 ├── scripts/
+│   ├── adiga-susi/                 # Adiga.kr data fetcher
+│   │   ├── fetch.ts                # Main script - fetches 수시 admission data
+│   │   ├── config.ts               # Static config (CSRF tokens, headers)
+│   │   └── parse-html.ts           # HTML parser for admission tables
 │   ├── qa/                         # Q&A management CLI scripts
 │   │   └── manage.ts               # Create, generate, list Q&A
 │   └── vector-store/               # Vector store CLI scripts
@@ -161,6 +186,7 @@ in-seoul/
 | Route | Purpose |
 |-------|---------|
 | `/` | Home page |
+| `/heatmap/susi` | 수시 admission statistics heatmap visualization |
 | `/qna` | Q&A pre-generation list (questions with answers) |
 | `/qna/[id]` | Question detail with versioned answers |
 
@@ -277,7 +303,29 @@ bun vs:query "question"                  # Query with file search
 
 > **Note**: All commands except `list-stores` and `vs:create` use `OPENAI_VECTOR_STORE_ID` from `.env`.
 
-### 6. Theme System
+### 6. Admission Heatmap System
+- **Page**: `src/app/heatmap/susi/page.tsx`
+- **Components**: `src/components/heatmap/`
+- **Service**: `src/lib/services/heatmap.service.ts`
+- **Repository**: `src/lib/repositories/heatmap.repository.ts`
+- **Types**: `src/lib/types/heatmap.types.ts`
+- **Data Fetcher**: `scripts/adiga-susi/`
+
+**Features**:
+- Interactive GPA slider (1-9 scale, 1등급 = best)
+- Multi-select university filter
+- Color-coded cells: green (안전권), yellow (적정권), red (상향)
+- Groups by university → admission type → department
+
+**CLI Usage**:
+```bash
+bun adiga:fetch                      # Fetch all universities
+bun adiga:fetch --dry-run            # Parse without saving
+bun adiga:fetch --university "서울대" # Single university
+bun adiga:fetch --delay 2000         # Custom delay between requests
+```
+
+### 7. Theme System
 - **Provider**: `src/components/providers.tsx`
 - **Toggle**: `src/components/theme-toggle.tsx`
 - Dark/Light mode via next-themes
