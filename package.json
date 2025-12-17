@@ -18,7 +18,8 @@
     "vs:create": "bun scripts/vector-store/create.ts",
     "vs:manage": "bun scripts/vector-store/manage.ts",
     "vs:query": "bun scripts/vector-store/query.ts",
-    "qa:manage": "bun scripts/qa/manage.ts"
+    "qa:manage": "bun scripts/qa/manage.ts",
+    "adiga:fetch": "bun scripts/adiga-susi/fetch.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.0-beta.83",

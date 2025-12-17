@@ -5,7 +5,7 @@
 ## Project Status
 
 **Current Phase**: Active Development
-**Last Updated**: 2025-12-06
+**Last Updated**: 2025-12-17
 
 ---
 
@@ -57,9 +57,9 @@ bun test:e2e      # E2E tests (Playwright)
 
 | Document | Description |
 |----------|-------------|
-| [AI SDK + OpenAI Responses API](./external_APIs/ai_sdk_openai_response_api.md) | Vercel AI SDK 6 beta integration with OpenAI Responses API, file search, web search |
-| [OpenAI File Search](./external_APIs/openai_file_search.md) | File search tool usage and configuration |
-| [OpenAI Retrieval](./external_APIs/openai_retreival.md) | Vector store and semantic search documentation |
+| [AI SDK + OpenAI Responses API](./External-APIs/ai_sdk_openai_response_api.md) | Vercel AI SDK 6 beta integration with OpenAI Responses API, file search, web search |
+| [OpenAI File Search](./External-APIs/openai_file_search.md) | File search tool usage and configuration |
+| [OpenAI Retrieval](./External-APIs/openai_retreival.md) | Vector store and semantic search documentation |
 
 ---
 
@@ -88,6 +88,8 @@ bun test:e2e      # E2E tests (Playwright)
 | Auth hooks (client) | `src/lib/auth-client.ts` |
 | AI models config | `src/lib/ai.ts` |
 | Vector store service | `src/lib/services/vector-store.service.ts` |
+| Q&A generation service | `src/lib/services/qa-generation.service.ts` |
+| Repositories | `src/lib/repositories/` |
 | Theme provider | `src/components/providers.tsx` |
 | Global styles | `src/app/globals.css` |
 | Environment template | `.env.example` |
@@ -100,6 +102,14 @@ bun test:e2e      # E2E tests (Playwright)
 |----------|--------|---------|
 | `/api/auth/[...all]` | GET, POST | Authentication flows |
 | `/api/ai/chat` | POST | AI chat streaming |
+
+## Pages
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Home page |
+| `/qna` | Q&A pre-generation list |
+| `/qna/[id]` | Question detail with versioned answers |
 
 ---
 
@@ -117,6 +127,8 @@ bun test:e2e      # E2E tests (Playwright)
 | `bun vs:create <name>` | Create OpenAI vector store |
 | `bun vs:manage <cmd>` | Manage vector store files (uses `OPENAI_VECTOR_STORE_ID` from .env) |
 | `bun vs:query "prompt"` | Query with file search (uses `OPENAI_VECTOR_STORE_ID` from .env) |
+| `bun qa:manage <cmd>` | Manage Q&A questions (list, create, generate, show) |
+| `bun adiga:fetch` | Fetch 수시 admission statistics from adiga.kr (--dry-run, --university) |
 
 ---
 
@@ -131,10 +143,22 @@ bun test:e2e      # E2E tests (Playwright)
 ├── Tasks/                              # PRDs & implementation plans
 ├── SOP/
 │   └── coding_patterns.md              # Patterns & best practices
-└── external_APIs/                      # External API documentation
+└── External-APIs/                      # External API documentation
     ├── ai_sdk_openai_response_api.md   # AI SDK 6 + OpenAI Responses API
     ├── openai_file_search.md           # OpenAI File Search tool
     └── openai_retreival.md             # OpenAI Vector Store retrieval
+
+scripts/
+├── adiga-susi/                         # Adiga.kr data fetcher
+│   ├── fetch.ts                        # Main script - fetches 수시 admission data
+│   ├── config.ts                       # Static config (CSRF tokens, headers)
+│   └── parse-html.ts                   # HTML parser for admission tables
+├── qa/
+│   └── manage.ts                       # Q&A management CLI
+└── vector-store/
+    ├── create.ts                       # Create vector store
+    ├── manage.ts                       # Manage vector store files
+    └── query.ts                        # Query vector store
 ```
 
 ---
