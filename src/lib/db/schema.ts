@@ -234,6 +234,7 @@ export const university = pgTable("university", {
   id: text("id").primaryKey(),
   name: text("name").notNull().unique(),
   shortName: text("short_name"),
+  adigaCode: text("adiga_code"), // 7-digit code used by adiga.kr (e.g., "0000019")
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
@@ -242,6 +243,7 @@ export const university = pgTable("university", {
 export const universityRelations = relations(university, ({ many }) => ({
   majors: many(major),
   yearWeights: many(universityYearWeight),
+  admissionStatistics: many(admissionStatistic),
 }));
 
 // University Year Weight - per-year GPA weights (고1, 고2, 고3)
@@ -415,6 +417,43 @@ export const criteriaSubjectWeightRelations = relations(
     subject: one(subject, {
       fields: [criteriaSubjectWeight.subjectId],
       references: [subject.id],
+    }),
+  })
+);
+
+// Admission Statistic - raw admission statistics from external sources (e.g., adiga.kr)
+// departmentName can be either a department or major name, so no FK to major table
+export const admissionStatistic = pgTable(
+  "admission_statistic",
+  {
+    id: text("id").primaryKey(),
+    universityId: text("university_id")
+      .notNull()
+      .references(() => university.id, { onDelete: "cascade" }),
+    departmentName: text("department_name").notNull(), // 모집단위 (raw text)
+    admissionType: text("admission_type").notNull(), // 전형 (e.g., 수시 지역균형전형)
+    year: integer("year").notNull(), // 학년도
+    quota: integer("quota"), // 모집인원
+    competitionRate: numeric("competition_rate", { precision: 5, scale: 2 }), // 경쟁률
+    waitlistRank: integer("waitlist_rank"), // 충원합격순위
+    cut50: numeric("cut_50", { precision: 4, scale: 2 }), // 50% cut
+    cut70: numeric("cut_70", { precision: 4, scale: 2 }), // 70% cut
+    subjects: text("subjects"), // 평가에 반영된 교과목
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    unique().on(table.universityId, table.departmentName, table.admissionType, table.year),
+  ]
+);
+
+export const admissionStatisticRelations = relations(
+  admissionStatistic,
+  ({ one }) => ({
+    university: one(university, {
+      fields: [admissionStatistic.universityId],
+      references: [university.id],
     }),
   })
 );

@@ -78,6 +78,10 @@ in-seoul/
 │   │   ├── api/
 │   │   │   ├── auth/[...all]/route.ts  # better-auth endpoints
 │   │   │   └── ai/chat/route.ts        # AI chat streaming endpoint
+│   │   ├── qna/                    # Q&A pre-generation pages
+│   │   │   ├── [id]/page.tsx       # Question detail page
+│   │   │   ├── loading.tsx         # Loading state
+│   │   │   └── page.tsx            # Question list page
 │   │   ├── globals.css             # Global styles + theme variables
 │   │   ├── layout.tsx              # Root layout with providers
 │   │   └── page.tsx                # Home page
@@ -89,8 +93,15 @@ in-seoul/
 │   │   ├── db/
 │   │   │   ├── index.ts            # Drizzle client
 │   │   │   └── schema.ts           # Database schema
+│   │   ├── prompts/                # AI prompt templates
+│   │   ├── repositories/           # Data access layer
+│   │   │   ├── answer.repository.ts
+│   │   │   ├── prompt.repository.ts
+│   │   │   ├── question.repository.ts
+│   │   │   └── tag.repository.ts
 │   │   ├── services/
-│   │   │   └── vector-store.service.ts  # OpenAI vector store management
+│   │   │   ├── qa-generation.service.ts  # Q&A generation with RAG
+│   │   │   └── vector-store.service.ts   # OpenAI vector store management
 │   │   ├── ai.ts                   # AI model config (Responses API)
 │   │   ├── auth.ts                 # better-auth server config
 │   │   ├── auth-client.ts          # better-auth client hooks
@@ -98,6 +109,8 @@ in-seoul/
 │   ├── hooks/                      # Custom React hooks
 │   └── types/                      # TypeScript type definitions
 ├── scripts/
+│   ├── qa/                         # Q&A management CLI scripts
+│   │   └── manage.ts               # Create, generate, list Q&A
 │   └── vector-store/               # Vector store CLI scripts
 │       ├── create.ts               # Create vector store
 │       ├── manage.ts               # Manage files (list, upload, delete)
@@ -141,7 +154,15 @@ in-seoul/
 | Route | Method | Purpose |
 |-------|--------|---------|
 | `/api/auth/[...all]` | GET, POST | Authentication (sign-in, sign-out, OAuth callbacks, session) |
-| `/api/ai/chat` | POST | Stream AI chat responses using GPT-4o |
+| `/api/ai/chat` | POST | Stream AI chat responses using GPT-5.1 |
+
+## Pages
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Home page |
+| `/qna` | Q&A pre-generation list (questions with answers) |
+| `/qna/[id]` | Question detail with versioned answers |
 
 ---
 
@@ -218,7 +239,25 @@ NEXT_PUBLIC_APP_URL=          # Public app URL
 - Streaming responses via `streamText()` + `toUIMessageStreamResponse()`
 - Tools: `openai.tools.fileSearch()`, `openai.tools.webSearchPreview()`
 
-### 4. Vector Store Management (OpenAI)
+### 4. Q&A Pre-generation System
+- **Service**: `src/lib/services/qa-generation.service.ts`
+- **Repositories**: `src/lib/repositories/` (question, answer, prompt, tag)
+- **CLI**: `scripts/qa/manage.ts`
+- **Pages**: `src/app/qna/`
+- Uses file search tool for RAG-based answer generation
+- Supports versioned answers with generation metadata (tokens, cost, latency)
+- Answer sources tracked from vector store retrieval
+
+**CLI Usage**:
+```bash
+bun qa:manage list [status]              # List questions
+bun qa:manage create "question text"     # Create question
+bun qa:manage generate <question_id>     # Generate answer
+bun qa:manage regenerate <question_id>   # Regenerate with new prompt
+bun qa:manage show <question_id>         # Show question details
+```
+
+### 5. Vector Store Management (OpenAI)
 - **Service**: `src/lib/services/vector-store.service.ts`
 - **CLI Scripts**: `scripts/vector-store/`
 - Uses native OpenAI SDK for CRUD operations
@@ -238,7 +277,7 @@ bun vs:query "question"                  # Query with file search
 
 > **Note**: All commands except `list-stores` and `vs:create` use `OPENAI_VECTOR_STORE_ID` from `.env`.
 
-### 5. Theme System
+### 6. Theme System
 - **Provider**: `src/components/providers.tsx`
 - **Toggle**: `src/components/theme-toggle.tsx`
 - Dark/Light mode via next-themes
@@ -268,3 +307,4 @@ Home Page (src/app/page.tsx)
 - [Database Schema](./database_schema.md) - ER diagram, table definitions, Drizzle usage
 - [SOP/](../SOP/) - Standard operating procedures
 - [Tasks/](../Tasks/) - Feature PRDs and implementation plans
+- [External-APIs/](../External-APIs/) - External API integration documentation
