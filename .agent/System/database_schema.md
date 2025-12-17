@@ -113,6 +113,8 @@ Active user sessions. Managed by better-auth.
 - Update age: 1 day (refreshes session after 1 day of activity)
 - Cookie cache: 5 minutes
 
+**Repository**: `src/lib/repositories/` (none - auth tables managed by better-auth)
+
 ### account
 
 OAuth provider accounts linked to users. Managed by better-auth.
@@ -250,6 +252,71 @@ Context chunks from vector store used in answer generation.
 | `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
 
 **Cascade**: Foreign key cascades on delete.
+
+---
+
+## Repository Methods
+
+Each table (except auth tables) has a corresponding repository in `src/lib/repositories/`:
+
+### question.repository.ts
+| Method | Description |
+|--------|-------------|
+| `findById(id)` | Get question with parent, follow-ups, tags, and answers |
+| `findByIdWithCurrentAnswer(id)` | Get question with only current answer |
+| `findByIdWithAllAnswers(id)` | Get question with all answer versions |
+| `findRootQuestions(status?)` | Get top-level questions (no parent) |
+| `findFollowUps(parentId)` | Get follow-up questions for a parent |
+| `findByTag(tagId)` | Get questions with specific tag |
+| `findByTagSlug(slug)` | Get questions by tag slug |
+| `findAll(status?)` | Get all questions, optionally filtered |
+| `create(data, tagIds?)` | Create question with optional tags |
+| `update(id, data)` | Update question |
+| `addTags(id, tagIds)` | Add tags to question |
+| `removeTags(id, tagIds)` | Remove tags from question |
+| `setTags(id, tagIds)` | Replace all tags |
+| `delete(id)` | Delete question |
+| `countByStatus()` | Get counts grouped by status |
+
+### answer.repository.ts
+| Method | Description |
+|--------|-------------|
+| `findById(id)` | Get answer with sources, prompt, and question |
+| `findByQuestionId(questionId)` | Get all answers for question |
+| `findCurrentByQuestionId(questionId)` | Get current active answer |
+| `findByVersion(questionId, version)` | Get specific version |
+| `getNextVersion(questionId)` | Calculate next version number |
+| `create(data, sources)` | Create answer and sources (auto-versions) |
+| `setCurrent(answerId)` | Set answer as current version |
+| `delete(id)` | Delete answer |
+| `deleteByQuestionId(questionId)` | Delete all answers for question |
+| `findSourcesByAnswerId(answerId)` | Get sources for answer |
+| `addSources(answerId, sources)` | Add sources to answer |
+
+### tag.repository.ts
+| Method | Description |
+|--------|-------------|
+| `findById(id)` | Get tag with parent and children |
+| `findBySlug(slug)` | Get tag by slug |
+| `findAll()` | Get all tags with hierarchy |
+| `findRootTags()` | Get top-level tags only |
+| `findChildren(parentId)` | Get child tags |
+| `create(data)` | Create tag |
+| `update(id, data)` | Update tag |
+| `delete(id)` | Delete tag |
+
+### prompt.repository.ts
+| Method | Description |
+|--------|-------------|
+| `findById(id)` | Get prompt by ID |
+| `findByNameAndVersion(name, version)` | Get specific version |
+| `findActiveByName(name)` | Get active prompt for name |
+| `findLatestByName(name)` | Get latest version by name |
+| `findAll()` | Get all prompts |
+| `findAllByName(name)` | Get all versions for name |
+| `create(data)` | Create prompt version |
+| `setActive(id)` | Activate prompt (deactivates others with same name) |
+| `delete(id)` | Delete prompt |
 
 ---
 

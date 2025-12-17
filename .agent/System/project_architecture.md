@@ -1,12 +1,19 @@
 # Project Architecture
 
-> **Status**: Active Development - Heatmap feature added
+> **Status**: Active Development - Heatmap Feature
 
 ## Project Overview
 
 **Project Name**: in-seoul
 **Type**: Next.js Web Application
-**Purpose**: University admission guidance platform for Seoul-area universities, providing Q&A assistance and admission statistics visualization (heatmap)
+**Purpose**: Korean university admissions Q&A assistant with AI-powered answer generation, vector search, and admission statistics visualization (heatmap)
+
+The application provides a Q&A system for Korean university admissions. It uses OpenAI's file search to retrieve relevant information from uploaded documents (admissions guidelines, etc.) and generates answers using GPT models. The system supports:
+- Pre-generated Q&A with versioned answers
+- Follow-up question generation
+- Question rephrasing for better search
+- Vector store integration for document retrieval
+- **Admission statistics heatmap** for 수시 (early admission) visualization
 
 ---
 
@@ -15,7 +22,7 @@
 ### Core Framework
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Next.js | 15.1.0 | React framework with App Router + Turbopack |
+| Next.js | 15.5.7 | React framework with App Router + Turbopack |
 | React | 19.0.0 | UI library |
 | TypeScript | 5.7.2 | Type-safe JavaScript (Strict mode) |
 
@@ -25,6 +32,7 @@
 | Tailwind CSS | 4.0.0-beta.8 | Utility-first CSS framework |
 | shadcn/ui | new-york style | Component library built on Radix UI |
 | next-themes | 0.4.4 | Dark/light mode support |
+| @tailwindcss/typography | 0.5.19 | Prose styling for markdown content |
 
 ### Database & ORM
 | Technology | Version | Purpose |
@@ -42,10 +50,17 @@
 ### AI Integration
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Vercel AI SDK | 6.0.0-beta | AI/LLM integration framework (Responses API) |
-| @ai-sdk/openai | 3.0.0-beta | OpenAI provider with file search & web search |
-| @ai-sdk/react | 3.0.0-beta | React hooks for AI SDK |
+| Vercel AI SDK | 6.0.0-beta.131 | AI/LLM integration framework (Responses API) |
+| @ai-sdk/openai | 3.0.0-beta.83 | OpenAI provider with file search & web search |
+| @ai-sdk/react | 3.0.0-beta.132 | React hooks for AI SDK |
 | openai | 6.10.0 | Native OpenAI SDK for vector store management |
+
+### Content Rendering
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| react-markdown | 10.1.0 | Markdown rendering |
+| remark-gfm | 4.0.1 | GitHub Flavored Markdown support |
+| rehype-highlight | 7.0.2 | Syntax highlighting |
 
 ### Testing
 | Technology | Version | Purpose |
@@ -69,9 +84,11 @@
 in-seoul/
 ├── .agent/                         # Documentation
 │   ├── System/                     # System architecture docs
-│   │   └── project_architecture.md
+│   │   ├── project_architecture.md
+│   │   └── database_schema.md
 │   ├── Tasks/                      # PRD & implementation plans
 │   ├── SOP/                        # Standard operating procedures
+│   ├── External-APIs/              # External API documentation
 │   └── README.md                   # Documentation index
 ├── src/
 │   ├── app/                        # Next.js App Router
@@ -83,10 +100,12 @@ in-seoul/
 │   │   │       ├── page.tsx        # Heatmap visualization
 │   │   │       ├── loading.tsx     # Loading skeleton
 │   │   │       └── error.tsx       # Error boundary
-│   │   ├── qna/                    # Q&A pre-generation pages
-│   │   │   ├── [id]/page.tsx       # Question detail page
-│   │   │   ├── loading.tsx         # Loading state
-│   │   │   └── page.tsx            # Question list page
+│   │   ├── qna/
+│   │   │   ├── page.tsx            # Q&A list page
+│   │   │   ├── loading.tsx         # Loading skeleton
+│   │   │   └── [id]/
+│   │   │       ├── page.tsx        # Q&A detail page
+│   │   │       └── loading.tsx     # Loading skeleton
 │   │   ├── globals.css             # Global styles + theme variables
 │   │   ├── layout.tsx              # Root layout with providers
 │   │   └── page.tsx                # Home page
@@ -102,27 +121,35 @@ in-seoul/
 │   │   │   ├── DepartmentRow.tsx   # Department row with cells
 │   │   │   └── index.ts            # Barrel exports
 │   │   ├── ui/                     # shadcn/ui components
+│   │   │   ├── badge.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── markdown.tsx        # Markdown renderer
+│   │   │   ├── skeleton.tsx
+│   │   │   └── tabs.tsx
+│   │   ├── qna/
+│   │   │   └── answer-versions.tsx # Versioned answer display with tabs
 │   │   ├── providers.tsx           # Theme provider wrapper
 │   │   └── theme-toggle.tsx        # Dark/light mode toggle
 │   ├── lib/
 │   │   ├── db/
-│   │   │   ├── index.ts            # Drizzle client
-│   │   │   └── schema.ts           # Database schema
-│   │   ├── prompts/                # AI prompt templates
+│   │   │   ├── index.ts            # Drizzle client + Transaction type
+│   │   │   └── schema.ts           # Database schema + relations
 │   │   ├── repositories/           # Data access layer
-│   │   │   ├── answer.repository.ts
-│   │   │   ├── heatmap.repository.ts   # Admission statistics queries
-│   │   │   ├── prompt.repository.ts
 │   │   │   ├── question.repository.ts
-│   │   │   └── tag.repository.ts
-│   │   ├── services/
-│   │   │   ├── heatmap.service.ts      # Heatmap data processing
-│   │   │   ├── qa-generation.service.ts  # Q&A generation with RAG
-│   │   │   └── vector-store.service.ts   # OpenAI vector store management
+│   │   │   ├── answer.repository.ts
+│   │   │   ├── tag.repository.ts
+│   │   │   ├── prompt.repository.ts
+│   │   │   └── heatmap.repository.ts   # Admission statistics queries
+│   │   ├── services/               # Business logic layer
+│   │   │   ├── vector-store.service.ts  # OpenAI vector store management
+│   │   │   ├── qa-generation.service.ts # Q&A generation with AI
+│   │   │   └── heatmap.service.ts      # Heatmap data processing
 │   │   ├── types/
 │   │   │   └── heatmap.types.ts    # Heatmap TypeScript types
 │   │   ├── utils/
 │   │   │   └── heatmap-filters.ts  # URL state for filters
+│   │   ├── prompts/
+│   │   │   └── admissions-assistant.ts  # System prompt for Q&A
 │   │   ├── ai.ts                   # AI model config (Responses API)
 │   │   ├── auth.ts                 # better-auth server config
 │   │   ├── auth-client.ts          # better-auth client hooks
@@ -134,8 +161,8 @@ in-seoul/
 │   │   ├── fetch.ts                # Main script - fetches 수시 admission data
 │   │   ├── config.ts               # Static config (CSRF tokens, headers)
 │   │   └── parse-html.ts           # HTML parser for admission tables
-│   ├── qa/                         # Q&A management CLI scripts
-│   │   └── manage.ts               # Create, generate, list Q&A
+│   ├── qa/
+│   │   └── manage.ts               # Q&A management CLI
 │   └── vector-store/               # Vector store CLI scripts
 │       ├── create.ts               # Create vector store
 │       ├── manage.ts               # Manage files (list, upload, delete)
@@ -143,9 +170,7 @@ in-seoul/
 ├── tests/
 │   ├── setup.ts                    # Vitest setup
 │   ├── unit/                       # Unit tests
-│   │   └── example.test.tsx
 │   └── e2e/                        # Playwright E2E tests
-│       └── example.spec.ts
 ├── public/                         # Static assets
 ├── drizzle/                        # Generated migrations (git-ignored)
 │
@@ -168,7 +193,19 @@ in-seoul/
 
 > See [Database Schema](./database_schema.md) for complete ER diagram, table definitions, and usage examples.
 
-**Tables**: `user`, `session`, `account`, `verification` (managed by better-auth)
+**Authentication Tables** (managed by better-auth): `user`, `session`, `account`, `verification`
+
+**Q&A Tables**:
+- `tag` - Hierarchical tags for categorizing questions
+- `prompt` - Versioned prompt templates for AI generation
+- `question` - Self-referencing for questions and follow-ups
+- `question_tag` - Many-to-many join table
+- `answer` - Versioned answers with generation metadata
+- `answer_source` - Context chunks from vector store
+
+**University Admission Tables**:
+- `university` - Seoul-area universities
+- `admission_statistic` - Raw admission statistics from adiga.kr
 
 **Schema File**: `src/lib/db/schema.ts`
 
@@ -179,16 +216,18 @@ in-seoul/
 | Route | Method | Purpose |
 |-------|--------|---------|
 | `/api/auth/[...all]` | GET, POST | Authentication (sign-in, sign-out, OAuth callbacks, session) |
-| `/api/ai/chat` | POST | Stream AI chat responses using GPT-5.1 |
+| `/api/ai/chat` | POST | Stream AI chat responses using GPT models |
 
-## Pages
+---
+
+## Frontend Routes
 
 | Route | Purpose |
 |-------|---------|
 | `/` | Home page |
 | `/heatmap/susi` | 수시 admission statistics heatmap visualization |
-| `/qna` | Q&A pre-generation list (questions with answers) |
-| `/qna/[id]` | Question detail with versioned answers |
+| `/qna` | Q&A list - displays all active questions |
+| `/qna/[id]` | Q&A detail - shows question with versioned answers, tags, sources, and follow-ups |
 
 ---
 
@@ -196,7 +235,7 @@ in-seoul/
 
 ```bash
 # Database (Supabase PostgreSQL)
-DATABASE_URL=postgresql://[user]:[password]@[host]:[port]/[database]
+POSTGRES_URL=postgresql://[user]:[password]@[host]:[port]/[database]
 
 # Authentication (better-auth)
 BETTER_AUTH_SECRET=           # Random secret (32+ chars)
@@ -212,7 +251,7 @@ KAKAO_CLIENT_SECRET=
 
 # AI - OpenAI
 OPENAI_API_KEY=
-OPENAI_VECTOR_STORE_ID=       # Optional: Vector store ID for file search
+OPENAI_VECTOR_STORE_ID=       # Vector store ID for file search
 
 # App
 NEXT_PUBLIC_APP_URL=          # Public app URL
@@ -236,9 +275,11 @@ NEXT_PUBLIC_APP_URL=          # Public app URL
 | `db:migrate` | `drizzle-kit migrate` | Run migrations |
 | `db:push` | `drizzle-kit push` | Push schema to DB |
 | `db:studio` | `drizzle-kit studio` | Open Drizzle Studio |
-| `vs:create` | `tsx scripts/vector-store/create.ts` | Create OpenAI vector store |
-| `vs:manage` | `tsx scripts/vector-store/manage.ts` | Manage vector store files (uses env) |
-| `vs:query` | `tsx scripts/vector-store/query.ts` | Query with file search (uses env) |
+| `vs:create` | `bun scripts/vector-store/create.ts` | Create OpenAI vector store |
+| `vs:manage` | `bun scripts/vector-store/manage.ts` | Manage vector store files |
+| `vs:query` | `bun scripts/vector-store/query.ts` | Query with file search |
+| `qa:manage` | `bun scripts/qa/manage.ts` | Manage Q&A content |
+| `adiga:fetch` | `bun scripts/adiga-susi/fetch.ts` | Fetch 수시 admission data |
 
 ---
 
@@ -247,7 +288,7 @@ NEXT_PUBLIC_APP_URL=          # Public app URL
 ### 1. Database Connection (Drizzle + Supabase)
 - **Client**: `src/lib/db/index.ts`
 - **Schema**: `src/lib/db/schema.ts`
-- Connection via `DATABASE_URL` environment variable
+- Connection via `POSTGRES_URL` environment variable
 - Migrations managed via Drizzle Kit
 
 ### 2. Authentication Flow (better-auth)
@@ -260,28 +301,22 @@ NEXT_PUBLIC_APP_URL=          # Public app URL
 ### 3. AI Integration (Vercel AI SDK 6 Beta)
 - **Config**: `src/lib/ai.ts`
 - **API route**: `src/app/api/ai/chat/route.ts`
-- **Vector Store Service**: `src/lib/services/vector-store.service.ts`
-- Models: `gpt-5.1` (default), `gpt-5-nano` via Responses API
+- **Q&A Service**: `src/lib/services/qa-generation.service.ts`
+- **System Prompt**: `src/lib/prompts/admissions-assistant.ts`
+- Models: `gpt-5.1` (default), `gpt-5-nano` for lightweight tasks
 - Streaming responses via `streamText()` + `toUIMessageStreamResponse()`
 - Tools: `openai.tools.fileSearch()`, `openai.tools.webSearchPreview()`
 
-### 4. Q&A Pre-generation System
+### 4. Q&A Generation System
 - **Service**: `src/lib/services/qa-generation.service.ts`
-- **Repositories**: `src/lib/repositories/` (question, answer, prompt, tag)
-- **CLI**: `scripts/qa/manage.ts`
-- **Pages**: `src/app/qna/`
-- Uses file search tool for RAG-based answer generation
-- Supports versioned answers with generation metadata (tokens, cost, latency)
-- Answer sources tracked from vector store retrieval
-
-**CLI Usage**:
-```bash
-bun qa:manage list [status]              # List questions
-bun qa:manage create "question text"     # Create question
-bun qa:manage generate <question_id>     # Generate answer
-bun qa:manage regenerate <question_id>   # Regenerate with new prompt
-bun qa:manage show <question_id>         # Show question details
-```
+- **Repositories**: `question`, `answer`, `tag`, `prompt` repositories
+- **Features**:
+  - Generate answers with file search from vector store
+  - Auto-generate 5 follow-up questions
+  - Auto-rephrase questions for better search
+  - Version tracking for answers
+  - Cost and usage tracking per answer
+  - Source attribution from retrieved documents
 
 ### 5. Vector Store Management (OpenAI)
 - **Service**: `src/lib/services/vector-store.service.ts`
@@ -301,9 +336,24 @@ bun vs:manage delete-store               # Delete the store
 bun vs:query "question"                  # Query with file search
 ```
 
-> **Note**: All commands except `list-stores` and `vs:create` use `OPENAI_VECTOR_STORE_ID` from `.env`.
+### 6. Q&A Management CLI
+- **Script**: `scripts/qa/manage.ts`
+- Commands:
+```bash
+bun qa:manage list [status]              # List questions (draft/active/archived)
+bun qa:manage create "question"          # Create new question
+bun qa:manage generate <id>              # Generate answer for question
+bun qa:manage regenerate <id>            # Regenerate with current prompt
+bun qa:manage show <id>                  # Show question with answer
+bun qa:manage tags                       # List all tags
+bun qa:manage create-tag <name>          # Create tag
+bun qa:manage prompts                    # List all prompts
+bun qa:manage create-prompt <name> <content>  # Create prompt version
+bun qa:manage activate-prompt <id>       # Activate prompt
+bun qa:manage stats                      # Show question statistics
+```
 
-### 6. Admission Heatmap System
+### 7. Admission Heatmap System
 - **Page**: `src/app/heatmap/susi/page.tsx`
 - **Components**: `src/components/heatmap/`
 - **Service**: `src/lib/services/heatmap.service.ts`
@@ -325,12 +375,60 @@ bun adiga:fetch --university "서울대" # Single university
 bun adiga:fetch --delay 2000         # Custom delay between requests
 ```
 
-### 7. Theme System
+### 8. Theme System
 - **Provider**: `src/components/providers.tsx`
 - **Toggle**: `src/components/theme-toggle.tsx`
 - Dark/Light mode via next-themes
 - CSS variables in `src/app/globals.css`
 - System preference detection enabled
+
+---
+
+## Architecture Layers
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Presentation Layer                      │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │   Pages     │  │ Components  │  │   Route Handlers    │  │
+│  │ (app/)      │  │ (components)│  │   (api/)            │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       Service Layer                          │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  Services (lib/services/)                            │    │
+│  │  - qa-generation.service.ts (Answer generation)     │    │
+│  │  - vector-store.service.ts (Document management)    │    │
+│  │  - heatmap.service.ts (Admission data processing)   │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      Data Access Layer                       │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  Repositories (lib/repositories/)                    │    │
+│  │  - question.repository.ts                            │    │
+│  │  - answer.repository.ts                              │    │
+│  │  - tag.repository.ts                                 │    │
+│  │  - prompt.repository.ts                              │    │
+│  │  - heatmap.repository.ts                             │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      Database Layer                          │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  Drizzle ORM (lib/db/)                               │    │
+│  │  - schema.ts (Tables + Relations)                   │    │
+│  │  - index.ts (Connection + Transaction type)         │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -341,10 +439,30 @@ RootLayout (src/app/layout.tsx)
 └── Providers (src/components/providers.tsx)
     └── ThemeProvider (next-themes)
         └── {children}
-            └── Pages...
-
-Home Page (src/app/page.tsx)
-└── ThemeToggle (src/components/theme-toggle.tsx)
+            ├── Home Page (src/app/page.tsx)
+            │   └── ThemeToggle
+            │
+            ├── Heatmap Pages
+            │   └── SusiHeatmapPage (src/app/heatmap/susi/page.tsx)
+            │       ├── HeatmapFilters
+            │       │   ├── GpaSlider
+            │       │   └── UniversitySelector
+            │       ├── HeatmapLegend
+            │       └── HeatmapGrid
+            │           └── UniversityGroup
+            │               └── AdmissionTypeColumn
+            │                   └── DepartmentRow
+            │
+            └── Q&A Pages
+                ├── QnaPage (src/app/qna/page.tsx)
+                │   └── Card, Badge components
+                │
+                └── QnaDetailPage (src/app/qna/[id]/page.tsx)
+                    ├── Badge, Card components
+                    └── AnswerVersions (src/components/qna/answer-versions.tsx)
+                        ├── Tabs (for multiple versions)
+                        ├── Markdown (content rendering)
+                        └── Sources & Prompt display
 ```
 
 ---
@@ -353,6 +471,5 @@ Home Page (src/app/page.tsx)
 
 - [README.md](../README.md) - Documentation index with quick start
 - [Database Schema](./database_schema.md) - ER diagram, table definitions, Drizzle usage
-- [SOP/](../SOP/) - Standard operating procedures
-- [Tasks/](../Tasks/) - Feature PRDs and implementation plans
-- [External-APIs/](../External-APIs/) - External API integration documentation
+- [Coding Patterns](../SOP/coding_patterns.md) - Service pattern, repository pattern, best practices
+- [AI SDK + OpenAI Responses API](../External-APIs/ai_sdk_openai_response_api.md) - AI integration details
