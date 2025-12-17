@@ -4,8 +4,8 @@
 
 ## Project Status
 
-**Current Phase**: Active Development - Q&A Pre-generation Feature
-**Last Updated**: 2025-12-07
+**Current Phase**: Active Development - Heatmap Feature
+**Last Updated**: 2025-12-18
 
 ---
 
@@ -19,6 +19,7 @@
 - Question rephrasing for better search
 - Vector store integration for document retrieval
 - Source attribution from retrieved documents
+- **Admission statistics heatmap** for 수시 (early admission) visualization
 
 ---
 
@@ -70,9 +71,9 @@ bun test:e2e      # E2E tests (Playwright)
 
 | Document | Description |
 |----------|-------------|
-| [AI SDK + OpenAI Responses API](./external_APIs/ai_sdk_openai_response_api.md) | Vercel AI SDK 6 beta integration with OpenAI Responses API, file search, web search |
-| [OpenAI File Search](./external_APIs/openai_file_search.md) | File search tool usage and configuration |
-| [OpenAI Retrieval](./external_APIs/openai_retreival.md) | Vector store and semantic search documentation |
+| [AI SDK + OpenAI Responses API](./External-APIs/ai_sdk_openai_response_api.md) | Vercel AI SDK 6 beta integration with OpenAI Responses API, file search, web search |
+| [OpenAI File Search](./External-APIs/openai_file_search.md) | File search tool usage and configuration |
+| [OpenAI Retrieval](./External-APIs/openai_retreival.md) | Vector store and semantic search documentation |
 
 ---
 
@@ -102,6 +103,8 @@ bun test:e2e      # E2E tests (Playwright)
 | AI models config | `src/lib/ai.ts` |
 | Q&A generation service | `src/lib/services/qa-generation.service.ts` |
 | Vector store service | `src/lib/services/vector-store.service.ts` |
+| Heatmap service | `src/lib/services/heatmap.service.ts` |
+| Heatmap components | `src/components/heatmap/` |
 | System prompt | `src/lib/prompts/admissions-assistant.ts` |
 | Theme provider | `src/components/providers.tsx` |
 | Global styles | `src/app/globals.css` |
@@ -114,6 +117,7 @@ bun test:e2e      # E2E tests (Playwright)
 | `src/lib/repositories/answer.repository.ts` | Answer versioning + sources |
 | `src/lib/repositories/tag.repository.ts` | Hierarchical tags |
 | `src/lib/repositories/prompt.repository.ts` | Versioned prompts |
+| `src/lib/repositories/heatmap.repository.ts` | Admission statistics queries |
 
 ---
 
@@ -122,6 +126,7 @@ bun test:e2e      # E2E tests (Playwright)
 | Route | Purpose |
 |-------|---------|
 | `/` | Home page |
+| `/heatmap/susi` | 수시 admission statistics heatmap |
 | `/qna` | Q&A list - displays all active questions |
 | `/qna/[id]` | Q&A detail - shows question with versioned answers, tags, sources, and follow-ups |
 
@@ -151,6 +156,7 @@ bun test:e2e      # E2E tests (Playwright)
 | `bun vs:manage <cmd>` | Manage vector store files |
 | `bun vs:query "prompt"` | Query with file search |
 | `bun qa:manage <cmd>` | Manage Q&A content |
+| `bun adiga:fetch` | Fetch 수시 admission statistics from adiga.kr |
 
 ### Q&A Management Commands
 
@@ -168,6 +174,15 @@ bun qa:manage activate-prompt <id>       # Activate prompt
 bun qa:manage stats                      # Show question statistics
 ```
 
+### Adiga Data Fetcher Commands
+
+```bash
+bun adiga:fetch                      # Fetch all universities
+bun adiga:fetch --dry-run            # Parse without saving
+bun adiga:fetch --university "서울대" # Single university
+bun adiga:fetch --delay 2000         # Custom delay between requests
+```
+
 ---
 
 ## Directory Structure
@@ -181,10 +196,22 @@ bun qa:manage stats                      # Show question statistics
 ├── Tasks/                              # PRDs & implementation plans
 ├── SOP/
 │   └── coding_patterns.md              # Patterns & best practices
-└── external_APIs/                      # External API documentation
+└── External-APIs/                      # External API documentation
     ├── ai_sdk_openai_response_api.md   # AI SDK 6 + OpenAI Responses API
     ├── openai_file_search.md           # OpenAI File Search tool
     └── openai_retreival.md             # OpenAI Vector Store retrieval
+
+scripts/
+├── adiga-susi/                         # Adiga.kr data fetcher
+│   ├── fetch.ts                        # Main script - fetches 수시 admission data
+│   ├── config.ts                       # Static config (CSRF tokens, headers)
+│   └── parse-html.ts                   # HTML parser for admission tables
+├── qa/
+│   └── manage.ts                       # Q&A management CLI
+└── vector-store/
+    ├── create.ts                       # Create vector store
+    ├── manage.ts                       # Manage vector store files
+    └── query.ts                        # Query vector store
 ```
 
 ---

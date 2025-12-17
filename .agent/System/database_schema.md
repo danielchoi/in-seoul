@@ -360,6 +360,212 @@ Each table (except auth tables) has a corresponding repository in `src/lib/repos
 
 ---
 
+## University Admission Tables
+
+Tables for the university admission comparison service.
+
+### university
+
+Seoul-area universities (~40 total).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique identifier |
+| `name` | TEXT | NOT NULL, UNIQUE | Full name (서울대학교) |
+| `short_name` | TEXT | NULLABLE | Short name (서울대) |
+| `adiga_code` | TEXT | NULLABLE | 7-digit code for adiga.kr (e.g., "0000019") |
+| `is_active` | BOOLEAN | NOT NULL, DEFAULT true | Visibility flag |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+| `updated_at` | TIMESTAMPTZ | NOT NULL | Last update time |
+
+### university_year_weight
+
+Per-year GPA weights at university level (고1, 고2, 고3).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique identifier |
+| `university_id` | TEXT | NOT NULL, FK → university.id | University reference |
+| `year` | INTEGER | NOT NULL | School year (1, 2, 3) |
+| `weight` | NUMERIC(3,1) | NOT NULL, DEFAULT 1.0 | Multiplier (1.0, 1.2, 1.5, 2.0) |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+
+**Unique Constraint**: `(university_id, year)`
+
+**Examples**:
+| University Type | Year 1 | Year 2 | Year 3 |
+|-----------------|--------|--------|--------|
+| Most schools | 1.0 | 1.0 | 1.0 |
+| Some schools | 1.0 | 1.2 | 1.5 |
+
+### subject
+
+Individual subjects for GPA tracking.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique identifier |
+| `code` | TEXT | NOT NULL, UNIQUE | Short code (국, 수, 영, 사, 과) |
+| `name` | TEXT | NOT NULL | Full name (국어, 수학, 영어) |
+| `display_order` | INTEGER | NOT NULL, DEFAULT 0 | UI ordering |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+| `updated_at` | TIMESTAMPTZ | NOT NULL | Last update time |
+
+### subject_group
+
+Reusable subject groupings.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique identifier |
+| `code` | TEXT | NOT NULL, UNIQUE | Group code (국수영, 국수영사, etc.) |
+| `name` | TEXT | NOT NULL | Display name (국어·수학·영어) |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+| `updated_at` | TIMESTAMPTZ | NOT NULL | Last update time |
+
+**Common Groups**:
+| Code | Subjects |
+|------|----------|
+| 국수영 | 국어, 수학, 영어 |
+| 국수영사 | 국어, 수학, 영어, 사회 |
+| 국수영과 | 국어, 수학, 영어, 과학 |
+| 국수영사과 | 국어, 수학, 영어, 사회, 과학 |
+| 수영과 | 수학, 영어, 과학 |
+
+### subject_group_item
+
+M:N join between subject groups and subjects.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique identifier |
+| `group_id` | TEXT | NOT NULL, FK → subject_group.id | Group reference |
+| `subject_id` | TEXT | NOT NULL, FK → subject.id | Subject reference |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+
+**Unique Constraint**: `(group_id, subject_id)`
+**Cascade**: `group_id` cascades on delete.
+
+### major
+
+University-specific departments/colleges.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique identifier |
+| `university_id` | TEXT | NOT NULL, FK → university.id | University reference |
+| `name` | TEXT | NOT NULL | Department name (공과대학, 경영학과) |
+| `canonical_name` | TEXT | NULLABLE | Normalized name for comparison |
+| `is_active` | BOOLEAN | NOT NULL, DEFAULT true | Visibility flag |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+| `updated_at` | TIMESTAMPTZ | NOT NULL | Last update time |
+
+**Unique Constraint**: `(university_id, name)`
+
+### admission_criteria
+
+Admission tracks with thresholds per major.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique identifier |
+| `major_id` | TEXT | NOT NULL, FK → major.id | Major reference |
+| `name` | TEXT | NOT NULL | Track name (일반전형, 교과전형) |
+| `year` | INTEGER | NOT NULL | Admission year (2025, 2026) |
+| `subject_group_id` | TEXT | FK → subject_group.id | Subject group (null = V1) |
+| `percentile_50` | NUMERIC(3,2) | NULLABLE | 안전권 threshold (median) |
+| `percentile_70` | NUMERIC(3,2) | NULLABLE | 적정권 threshold (borderline) |
+| `is_active` | BOOLEAN | NOT NULL, DEFAULT true | Visibility flag |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+| `updated_at` | TIMESTAMPTZ | NOT NULL | Last update time |
+
+**Unique Constraint**: `(major_id, name, year)`
+
+**Evaluation Logic** (lower GPA = better, 1등급 is best):
+- User GPA ≤ `percentile_50` → **안전권** (Safe)
+- User GPA ≤ `percentile_70` → **적정권** (Target)
+- User GPA > `percentile_70` → **상향** (Reach)
+
+### criteria_subject_weight
+
+Per-subject weights for V2 weighted calculation.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique identifier |
+| `criteria_id` | TEXT | NOT NULL, FK → admission_criteria.id | Criteria reference |
+| `subject_id` | TEXT | NOT NULL, FK → subject.id | Subject reference |
+| `weight` | NUMERIC(3,1) | NOT NULL, DEFAULT 1.0 | Multiplier (1.0, 1.5, 2.0) |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+
+**Unique Constraint**: `(criteria_id, subject_id)`
+**Cascade**: `criteria_id` cascades on delete.
+
+### admission_statistic
+
+Raw admission statistics from external sources (e.g., adiga.kr). The `department_name` field stores raw text that can be either a department or major name, so there's no foreign key to the `major` table.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT | PK | Unique identifier |
+| `university_id` | TEXT | NOT NULL, FK → university.id | University reference |
+| `department_name` | TEXT | NOT NULL | 모집단위 (department or major name) |
+| `admission_type` | TEXT | NOT NULL | 전형 (e.g., 수시 지역균형전형) |
+| `year` | INTEGER | NOT NULL | 학년도 (2025, 2026, etc.) |
+| `quota` | INTEGER | NULLABLE | 모집인원 |
+| `competition_rate` | NUMERIC(5,2) | NULLABLE | 경쟁률 (e.g., 3.75) |
+| `waitlist_rank` | INTEGER | NULLABLE | 충원합격순위 |
+| `cut_50` | NUMERIC(4,2) | NULLABLE | 50% cut grade |
+| `cut_70` | NUMERIC(4,2) | NULLABLE | 70% cut grade |
+| `subjects` | TEXT | NULLABLE | 평가에 반영된 교과목 |
+| `is_active` | BOOLEAN | NOT NULL, DEFAULT true | Visibility flag |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation time |
+| `updated_at` | TIMESTAMPTZ | NOT NULL | Last update time |
+
+**Unique Constraint**: `(university_id, department_name, admission_type, year)`
+**Cascade**: `university_id` cascades on delete.
+
+**Data Source**: Extracted from adiga.kr using `.agent/scratch/extract_adiga_table.py`
+
+### University Admission ERD
+
+```
+┌─────────────┐       ┌─────────────┐       ┌─────────────────────┐
+│  university │──1:N──│    major    │──1:N──│  admission_criteria │
+└──────┬──────┘       └─────────────┘       └──────────┬──────────┘
+       │                                               │
+       │ 1:N                                ┌──────────┼──────────┐
+       ├───────────────────────┐            │ N:1      │          │ 1:N
+       │                       │   ┌────────▼───────┐  │  ┌───────▼───────────────┐
+       │                       │   │  subject_group │  │  │ criteria_subject_weight│
+       ▼                       ▼   └───────┬────────┘  │  └───────────┬───────────┘
+┌──────────────────────┐ ┌─────────────────────┐       │              │ N:1
+│ university_year_weight│ │ admission_statistic │       │              ▼
+└──────────────────────┘ │(raw, no FK to major)│       │       ┌─────────────┐
+                         └─────────────────────┘       │       │   subject   │
+                                                       │       └─────────────┘
+                                           │ 1:N       │              ▲
+                                           ▼           │              │ N:1
+                                   ┌────────────────────┐             │
+                                   │ subject_group_item │─────────────┘
+                                   └────────────────────┘
+```
+
+### University Admission Relationships
+| Relationship | Type | Description |
+|--------------|------|-------------|
+| university → major | 1:N | A university has many majors |
+| university → university_year_weight | 1:N | Per-year weights for each university |
+| university → admission_statistic | 1:N | Raw admission statistics per university |
+| major → admission_criteria | 1:N | A major has multiple admission tracks |
+| admission_criteria → subject_group | N:1 | Criteria uses a subject group (V2) |
+| admission_criteria → criteria_subject_weight | 1:N | Per-subject weights |
+| subject_group → subject_group_item | 1:N | Group contains subjects |
+| subject_group_item → subject | N:1 | Items reference subjects |
+| criteria_subject_weight → subject | N:1 | Weights reference subjects |
+
+---
+
 ## Drizzle Commands
 
 ```bash
