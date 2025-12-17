@@ -33,6 +33,7 @@ export const heatmapRepository = {
         year: admissionStatistic.year,
         cut50: admissionStatistic.cut50,
         cut70: admissionStatistic.cut70,
+        cut100: admissionStatistic.cut100,
         subjects: admissionStatistic.subjects,
       })
       .from(admissionStatistic)

@@ -14,7 +14,8 @@ export function DepartmentRow({ department, userGPA }: DepartmentRowProps) {
   const zoneColor: ZoneColor = calculateCellColor(
     userGPA,
     department.cut50,
-    department.cut70
+    department.cut70,
+    department.cut100
   );
 
   const displayValue = department.cut70?.toFixed(2) ?? "-";
@@ -26,7 +27,7 @@ export function DepartmentRow({ department, userGPA }: DepartmentRowProps) {
         backgroundColor: zoneColor.color,
         color: zoneColor.textColor,
       }}
-      title={`50% cut: ${department.cut50?.toFixed(2) ?? "N/A"} | 70% cut: ${department.cut70?.toFixed(2) ?? "N/A"}\n${zoneColor.label}`}
+      title={`50% cut: ${department.cut50?.toFixed(2) ?? "N/A"} | 70% cut: ${department.cut70?.toFixed(2) ?? "N/A"} | 100% cut: ${department.cut100?.toFixed(2) ?? "N/A"}\n${zoneColor.label}`}
     >
       <span className="text-sm truncate flex-1 mr-2">
         {department.departmentName}
