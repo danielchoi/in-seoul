@@ -224,3 +224,236 @@ export const answerSourceRelations = relations(answerSource, ({ one }) => ({
     references: [answer.id],
   }),
 }));
+
+// =============================================================================
+// University Admission Tables
+// =============================================================================
+
+// University table - 40 Seoul-area universities
+export const university = pgTable("university", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  shortName: text("short_name"),
+  adigaCode: text("adiga_code"), // 7-digit code used by adiga.kr (e.g., "0000019")
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+});
+
+export const universityRelations = relations(university, ({ many }) => ({
+  majors: many(major),
+  yearWeights: many(universityYearWeight),
+  admissionStatistics: many(admissionStatistic),
+}));
+
+// University Year Weight - per-year GPA weights (고1, 고2, 고3)
+export const universityYearWeight = pgTable(
+  "university_year_weight",
+  {
+    id: text("id").primaryKey(),
+    universityId: text("university_id")
+      .notNull()
+      .references(() => university.id, { onDelete: "cascade" }),
+    year: integer("year").notNull(), // 1, 2, 3 (고1, 고2, 고3)
+    weight: numeric("weight", { precision: 3, scale: 1 }).notNull().default("1.0"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [unique().on(table.universityId, table.year)]
+);
+
+export const universityYearWeightRelations = relations(
+  universityYearWeight,
+  ({ one }) => ({
+    university: one(university, {
+      fields: [universityYearWeight.universityId],
+      references: [university.id],
+    }),
+  })
+);
+
+// Subject table - individual subjects (국어, 수학, 영어, etc.)
+export const subject = pgTable("subject", {
+  id: text("id").primaryKey(),
+  code: text("code").notNull().unique(), // 국, 수, 영, 사, 과
+  name: text("name").notNull(), // 국어, 수학, 영어, 사회, 과학
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+});
+
+export const subjectRelations = relations(subject, ({ many }) => ({
+  groupItems: many(subjectGroupItem),
+  criteriaWeights: many(criteriaSubjectWeight),
+}));
+
+// Subject Group - reusable groupings (국수영, 국수영사, etc.)
+export const subjectGroup = pgTable("subject_group", {
+  id: text("id").primaryKey(),
+  code: text("code").notNull().unique(), // 국수영, 국수영사, 국수영과, etc.
+  name: text("name").notNull(), // Display name: 국어·수학·영어
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+});
+
+export const subjectGroupRelations = relations(subjectGroup, ({ many }) => ({
+  items: many(subjectGroupItem),
+  criteria: many(admissionCriteria),
+}));
+
+// Subject Group Item - M:N join between groups and subjects
+export const subjectGroupItem = pgTable(
+  "subject_group_item",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => subjectGroup.id, { onDelete: "cascade" }),
+    subjectId: text("subject_id")
+      .notNull()
+      .references(() => subject.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [unique().on(table.groupId, table.subjectId)]
+);
+
+export const subjectGroupItemRelations = relations(
+  subjectGroupItem,
+  ({ one }) => ({
+    group: one(subjectGroup, {
+      fields: [subjectGroupItem.groupId],
+      references: [subjectGroup.id],
+    }),
+    subject: one(subject, {
+      fields: [subjectGroupItem.subjectId],
+      references: [subject.id],
+    }),
+  })
+);
+
+// Major table - university-specific departments
+export const major = pgTable(
+  "major",
+  {
+    id: text("id").primaryKey(),
+    universityId: text("university_id")
+      .notNull()
+      .references(() => university.id),
+    name: text("name").notNull(), // 공과대학, 경영학과, etc.
+    canonicalName: text("canonical_name"), // Normalized name for cross-university comparison
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [unique().on(table.universityId, table.name)]
+);
+
+export const majorRelations = relations(major, ({ one, many }) => ({
+  university: one(university, {
+    fields: [major.universityId],
+    references: [university.id],
+  }),
+  admissionCriteria: many(admissionCriteria),
+}));
+
+// Admission Criteria - tracks with thresholds per major
+export const admissionCriteria = pgTable(
+  "admission_criteria",
+  {
+    id: text("id").primaryKey(),
+    majorId: text("major_id")
+      .notNull()
+      .references(() => major.id),
+    name: text("name").notNull(), // Track name: 일반전형, 교과전형, etc.
+    year: integer("year").notNull(), // Admission year (2025, 2026, etc.)
+    subjectGroupId: text("subject_group_id").references(() => subjectGroup.id), // null = V1 (overall GPA)
+    percentile50: numeric("percentile_50", { precision: 3, scale: 2 }), // 안전권: 50th percentile
+    percentile70: numeric("percentile_70", { precision: 3, scale: 2 }), // 적정권: 70th percentile
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [unique().on(table.majorId, table.name, table.year)]
+);
+
+export const admissionCriteriaRelations = relations(
+  admissionCriteria,
+  ({ one, many }) => ({
+    major: one(major, {
+      fields: [admissionCriteria.majorId],
+      references: [major.id],
+    }),
+    subjectGroup: one(subjectGroup, {
+      fields: [admissionCriteria.subjectGroupId],
+      references: [subjectGroup.id],
+    }),
+    subjectWeights: many(criteriaSubjectWeight),
+  })
+);
+
+// Criteria Subject Weight - per-subject weights for V2 calculation
+export const criteriaSubjectWeight = pgTable(
+  "criteria_subject_weight",
+  {
+    id: text("id").primaryKey(),
+    criteriaId: text("criteria_id")
+      .notNull()
+      .references(() => admissionCriteria.id, { onDelete: "cascade" }),
+    subjectId: text("subject_id")
+      .notNull()
+      .references(() => subject.id),
+    weight: numeric("weight", { precision: 3, scale: 1 }).notNull().default("1.0"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [unique().on(table.criteriaId, table.subjectId)]
+);
+
+export const criteriaSubjectWeightRelations = relations(
+  criteriaSubjectWeight,
+  ({ one }) => ({
+    criteria: one(admissionCriteria, {
+      fields: [criteriaSubjectWeight.criteriaId],
+      references: [admissionCriteria.id],
+    }),
+    subject: one(subject, {
+      fields: [criteriaSubjectWeight.subjectId],
+      references: [subject.id],
+    }),
+  })
+);
+
+// Admission Statistic - raw admission statistics from external sources (e.g., adiga.kr)
+// departmentName can be either a department or major name, so no FK to major table
+export const admissionStatistic = pgTable(
+  "admission_statistic",
+  {
+    id: text("id").primaryKey(),
+    universityId: text("university_id")
+      .notNull()
+      .references(() => university.id, { onDelete: "cascade" }),
+    departmentName: text("department_name").notNull(), // 모집단위 (raw text)
+    admissionType: text("admission_type").notNull(), // 전형 (e.g., 수시 지역균형전형)
+    year: integer("year").notNull(), // 학년도
+    quota: integer("quota"), // 모집인원
+    competitionRate: numeric("competition_rate", { precision: 5, scale: 2 }), // 경쟁률
+    waitlistRank: integer("waitlist_rank"), // 충원합격순위
+    cut50: numeric("cut_50", { precision: 4, scale: 2 }), // 50% cut
+    cut70: numeric("cut_70", { precision: 4, scale: 2 }), // 70% cut
+    subjects: text("subjects"), // 평가에 반영된 교과목
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    unique().on(table.universityId, table.departmentName, table.admissionType, table.year),
+  ]
+);
+
+export const admissionStatisticRelations = relations(
+  admissionStatistic,
+  ({ one }) => ({
+    university: one(university, {
+      fields: [admissionStatistic.universityId],
+      references: [university.id],
+    }),
+  })
+);
