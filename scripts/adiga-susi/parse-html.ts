@@ -26,8 +26,8 @@ function parseCompetitionRate(rateStr: string): number | null {
 
   const match = rateStr.trim().match(/^([\d.]+):([\d.]+)$/);
   if (match) {
-    const numerator = parseFloat(match[1]);
-    const denominator = parseFloat(match[2]);
+    const numerator = parseFloat(match[1]!);
+    const denominator = parseFloat(match[2]!);
     if (denominator !== 0) {
       return Math.round((numerator / denominator) * 100) / 100;
     }
@@ -72,13 +72,13 @@ export function parseAdmissionHtml(htmlContent: string): AdmissionRecord[] {
   // Extract year from [YYYY학년도] pattern
   const yearMatch = htmlContent.match(/\[(\d{4})학년도\]/);
   if (yearMatch) {
-    currentYear = parseInt(yearMatch[1], 10);
+    currentYear = parseInt(yearMatch[1]!, 10);
   }
 
   // Also check for <p> tag with year
   const pYearMatch = htmlContent.match(/\[?(\d{4})\]?\s*학년도/);
   if (pYearMatch && currentYear === 0) {
-    currentYear = parseInt(pYearMatch[1], 10);
+    currentYear = parseInt(pYearMatch[1]!, 10);
   }
 
   // If still no year, try to extract from searchSyr parameter (2026 -> 2025)
@@ -96,7 +96,7 @@ export function parseAdmissionHtml(htmlContent: string): AdmissionRecord[] {
   for (const table of tableMatch) {
     // Extract rows from tbody or table
     const tbodyMatch = table.match(/<tbody[^>]*>([\s\S]*?)<\/tbody>/i);
-    const rowsHtml = tbodyMatch ? tbodyMatch[1] : table;
+    const rowsHtml = tbodyMatch?.[1] ?? table;
 
     const rows = rowsHtml.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi);
     if (!rows) continue;
@@ -108,7 +108,7 @@ export function parseAdmissionHtml(htmlContent: string): AdmissionRecord[] {
 
       for (const cellMatch of cellMatches) {
         // Extract text content, removing HTML tags
-        let cellText = cellMatch[1]
+        const cellText = (cellMatch[1] ?? "")
           .replace(/<[^>]*>/g, " ")
           .replace(/&nbsp;/g, " ")
           .replace(/\s+/g, " ")
@@ -123,7 +123,7 @@ export function parseAdmissionHtml(htmlContent: string): AdmissionRecord[] {
       // Detect year marker
       const rowYearMatch = rowText.match(/\[(\d{4})학년도\]/);
       if (rowYearMatch) {
-        currentYear = parseInt(rowYearMatch[1], 10);
+        currentYear = parseInt(rowYearMatch[1]!, 10);
         continue;
       }
 
@@ -203,7 +203,7 @@ export function printSummary(records: AdmissionRecord[]): void {
   console.log("=== Extraction Summary ===");
   console.log(`Total records: ${records.length}`);
   if (records.length > 0) {
-    console.log(`Year: ${records[0].year}`);
+    console.log(`Year: ${records[0]!.year}`);
   }
   console.log("\nRecords by admission type:");
   for (const [type, count] of Object.entries(byType).sort()) {

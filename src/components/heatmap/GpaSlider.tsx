@@ -21,7 +21,7 @@ export function GpaSlider({ value, onChange }: GpaSliderProps) {
       </div>
       <Slider
         value={[value]}
-        onValueChange={(values) => onChange(values[0])}
+        onValueChange={(values) => onChange(values[0] ?? value)}
         min={1}
         max={9}
         step={0.1}

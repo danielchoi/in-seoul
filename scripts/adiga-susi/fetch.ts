@@ -20,7 +20,7 @@ import { university, admissionStatistic } from "@/lib/db/schema";
 import { and, eq, isNotNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { ADIGA_CONFIG } from "./config";
-import { parseAdmissionHtml, printSummary, type AdmissionRecord } from "./parse-html";
+import { parseAdmissionHtml, type AdmissionRecord } from "./parse-html";
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
@@ -29,7 +29,7 @@ const helpFlag = args.includes("--help");
 const universityIndex = args.indexOf("--university");
 const universityFilter = universityIndex !== -1 ? args[universityIndex + 1] : null;
 const delayIndex = args.indexOf("--delay");
-const delay = delayIndex !== -1 ? parseInt(args[delayIndex + 1], 10) : 1000;
+const delay = delayIndex !== -1 ? parseInt(args[delayIndex + 1] ?? "1000", 10) : 1000;
 
 function printHelp(): void {
   console.log(`
@@ -106,7 +106,8 @@ async function saveRecords(
         .onConflictDoNothing();
 
       // Check if row was actually inserted (rowCount is 1 if inserted, 0 if skipped)
-      if (result.rowCount && result.rowCount > 0) {
+      const rowCount = (result as unknown as { rowCount: number }).rowCount;
+      if (rowCount > 0) {
         inserted++;
       } else {
         skipped++;
@@ -165,7 +166,7 @@ async function main(): Promise<void> {
   let totalRecords = 0;
 
   for (let i = 0; i < filteredUniversities.length; i++) {
-    const univ = filteredUniversities[i];
+    const univ = filteredUniversities[i]!;
     console.log(
       `[${i + 1}/${filteredUniversities.length}] Processing: ${univ.name} (code: ${univ.adigaCode})`
     );
