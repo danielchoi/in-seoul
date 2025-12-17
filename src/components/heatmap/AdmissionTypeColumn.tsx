@@ -18,6 +18,18 @@ export function AdmissionTypeColumn({
   // Format admission type - remove "수시 " prefix for brevity
   const formattedType = column.admissionType.replace(/^수시\s*/, "");
 
+  // Find the index where userGPA crosses the cut70 threshold
+  // Departments are sorted by cut70 descending, so we find the first department
+  // where userGPA >= cut70 (reach zone)
+  const cut70DividerIndex = column.departments.findIndex(
+    (dept) => dept.cut70 !== null && userGPA >= dept.cut70
+  );
+
+  // Find the index where userGPA crosses the cut100 threshold
+  const cut100DividerIndex = column.departments.findIndex(
+    (dept) => dept.cut100 !== null && userGPA >= dept.cut100
+  );
+
   return (
     <div
       className={`flex flex-col min-w-[260px] max-w-[300px] ${
@@ -39,11 +51,31 @@ export function AdmissionTypeColumn({
           </div>
         ) : (
           column.departments.map((dept, index) => (
-            <DepartmentRow
-              key={`${dept.departmentName}-${index}`}
-              department={dept}
-              userGPA={userGPA}
-            />
+            <div key={`${dept.departmentName}-${index}`}>
+              {/* Visual divider at cut70 threshold */}
+              {index === cut70DividerIndex && (
+                <div className="relative py-1 bg-muted/50">
+                  <div className="absolute inset-x-0 top-1/2 border-t-2 border-dashed border-orange-400" />
+                  <div className="relative text-center">
+                    <span className="px-2 text-[10px] font-medium text-orange-600 bg-muted/50">
+                      70% 컷
+                    </span>
+                  </div>
+                </div>
+              )}
+              {/* Visual divider at cut100 threshold */}
+              {index === cut100DividerIndex && cut100DividerIndex !== cut70DividerIndex && (
+                <div className="relative py-1 bg-muted/50">
+                  <div className="absolute inset-x-0 top-1/2 border-t-2 border-dashed border-red-400" />
+                  <div className="relative text-center">
+                    <span className="px-2 text-[10px] font-medium text-red-600 bg-muted/50">
+                      예상 100% 컷
+                    </span>
+                  </div>
+                </div>
+              )}
+              <DepartmentRow department={dept} userGPA={userGPA} />
+            </div>
           ))
         )}
       </div>

@@ -14,16 +14,21 @@ import { ZONE_COLORS } from "@/lib/types/heatmap.types";
  * Calculate the color zone for a cell based on user's GPA vs cut values
  *
  * Zone logic:
- * - Safe (Indigo): GPA < cut_50 (user is better than 50th percentile)
- * - Target (Gray-Indigo): cut_50 <= GPA < cut_70
- * - Reach (Gray): GPA >= cut_70 (user is worse than 70th percentile)
- *
- * Within Safe zone, color intensity based on margin (cut_50 - GPA)
+ * - 안전권 (Safe): GPA < cut_50 (user is better than 50th percentile)
+ *   - margin >= 1.5: Very safe
+ *   - margin >= 1.0: Safe
+ *   - margin >= 0.5: Likely safe
+ *   - margin < 0.5: Just safe
+ * - 적정권 (Target): cut_50 <= GPA < cut_70
+ * - 상향 (Reach): GPA >= cut_70
+ *   - within 0.5 of cut_100: Still possible
+ *   - >0.5 above cut_100: Unlikely
  */
 export function calculateCellColor(
   userGPA: number,
   cut50: number | null,
-  cut70: number | null
+  cut70: number | null,
+  cut100: number | null
 ): ZoneColor {
   // No data case
   if (cut50 === null || cut70 === null) {
@@ -48,10 +53,11 @@ export function calculateCellColor(
     // Target zone
     return ZONE_COLORS.TARGET;
   } else {
-    // Reach zone - calculate distance above cut_70
-    const distance = userGPA - cut70;
+    // Reach zone - use cut100 if available, otherwise fall back to cut70-based logic
+    const effectiveCut100 = cut100 ?? cut70;
+    const distanceFromCut100 = userGPA - effectiveCut100;
 
-    if (distance <= 0.5) {
+    if (distanceFromCut100 <= 0.5) {
       return ZONE_COLORS.REACH_WARM;
     } else {
       return ZONE_COLORS.REACH_LIGHT;
@@ -102,11 +108,13 @@ function transformToHeatmapData(
 
     const cut50 = row.cut50 ? parseFloat(row.cut50) : null;
     const cut70 = row.cut70 ? parseFloat(row.cut70) : null;
+    const cut100 = row.cut100 ? parseFloat(row.cut100) : null;
 
     university.admissionTypes.get(row.admissionType)!.push({
       departmentName: row.departmentName,
       cut50,
       cut70,
+      cut100,
       subjects: row.subjects,
     });
   }
@@ -118,11 +126,11 @@ function transformToHeatmapData(
       const admissionTypes: AdmissionTypeColumn[] = Array.from(
         uni.admissionTypes.entries()
       ).map(([admissionType, departments]) => {
-        // Sort departments by cut_50 (descending - higher cut first = more likely entry)
+        // Sort departments by cut_70 (descending - higher cut first = more likely entry)
         // Higher cut value means less competitive, so user is more likely to get in
         const sortedDepartments = [...departments].sort((a, b) => {
-          const aCut = a.cut50 ?? 0;
-          const bCut = b.cut50 ?? 0;
+          const aCut = a.cut70 ?? 0;
+          const bCut = b.cut70 ?? 0;
           return bCut - aCut; // Descending order
         });
 

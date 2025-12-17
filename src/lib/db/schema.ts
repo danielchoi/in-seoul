@@ -438,6 +438,7 @@ export const admissionStatistic = pgTable(
     waitlistRank: integer("waitlist_rank"), // 충원합격순위
     cut50: numeric("cut_50", { precision: 4, scale: 2 }), // 50% cut
     cut70: numeric("cut_70", { precision: 4, scale: 2 }), // 70% cut
+    cut100: numeric("cut_100", { precision: 4, scale: 2 }), // 100% cut (estimated)
     subjects: text("subjects"), // 평가에 반영된 교과목
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),

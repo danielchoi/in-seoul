@@ -40,7 +40,7 @@ export default async function SusiHeatmapPage({ searchParams }: PageProps) {
   );
 
   return (
-    <div className="container mx-auto py-8 px-4 space-y-6">
+    <div className="mx-auto py-8 px-4 md:px-6 lg:px-8 space-y-6">
       {/* Header */}
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">수시 내신 히트맵</h1>
@@ -80,7 +80,8 @@ export default async function SusiHeatmapPage({ searchParams }: PageProps) {
       <div className="text-xs text-muted-foreground space-y-1">
         <p>* 셀에 표시된 숫자는 70% 컷 (적정권) 등급입니다.</p>
         <p>* 데이터는 전년도 입시 결과 기준입니다.</p>
-        <p>* 마우스를 올리면 50% 컷 (안전권) 등급도 확인할 수 있습니다.</p>
+        <p>* 100% 컷은 자체 알고리즘으로 산출한 예상치입니다.</p>
+        <p>* 마우스를 올리면 50%, 70%, 100% 컷 등급을 확인할 수 있습니다.</p>
       </div>
     </div>
   );

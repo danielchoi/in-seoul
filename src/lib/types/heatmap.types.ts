@@ -19,6 +19,7 @@ export interface AdmissionStatisticRow {
   year: number;
   cut50: string | null; // NUMERIC comes as string from DB
   cut70: string | null;
+  cut100: string | null;
   subjects: string | null;
 }
 
@@ -43,6 +44,7 @@ export interface DepartmentEntry {
   departmentName: string;
   cut50: number | null;
   cut70: number | null;
+  cut100: number | null;
   subjects: string | null;
 }
 

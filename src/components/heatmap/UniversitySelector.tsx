@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/popover";
 import type { UniversityOption } from "@/lib/types/heatmap.types";
 
+const MAX_SELECTIONS = 5;
+
 interface UniversitySelectorProps {
   universities: UniversityOption[];
   selectedIds: string[];
@@ -26,7 +28,7 @@ interface UniversitySelectorProps {
 }
 
 /**
- * Multi-select dropdown for universities
+ * Multi-select dropdown for universities (max 5)
  */
 export function UniversitySelector({
   universities,
@@ -36,21 +38,20 @@ export function UniversitySelector({
   const [open, setOpen] = useState(false);
 
   const handleToggle = (id: string) => {
-    const newIds = selectedIds.includes(id)
-      ? selectedIds.filter((i) => i !== id)
-      : [...selectedIds, id];
-    onChange(newIds);
-  };
-
-  const handleSelectAll = () => {
-    if (selectedIds.length === universities.length) {
-      onChange([]);
-    } else {
-      onChange(universities.map((u) => u.id));
+    const isSelected = selectedIds.includes(id);
+    if (isSelected) {
+      onChange(selectedIds.filter((i) => i !== id));
+    } else if (selectedIds.length < MAX_SELECTIONS) {
+      onChange([...selectedIds, id]);
     }
   };
 
+  const handleClear = () => {
+    onChange([]);
+  };
+
   const selectedCount = selectedIds.length;
+  const isMaxReached = selectedCount >= MAX_SELECTIONS;
   const displayText =
     selectedCount === 0
       ? "대학 선택..."
@@ -77,45 +78,56 @@ export function UniversitySelector({
         </PopoverTrigger>
         <PopoverContent className="w-[300px] p-0" align="start">
           <Command>
-            <CommandInput placeholder="대학 검색..." />
+            <div className="flex items-center border-b">
+              <CommandInput placeholder="대학 검색..." className="border-0" />
+            </div>
+            {/* Header with count and clear button */}
+            <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/50">
+              <span className="text-xs text-muted-foreground">
+                {selectedCount}/{MAX_SELECTIONS}개 선택
+                {isMaxReached && " (최대)"}
+              </span>
+              {selectedCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClear}
+                  className="h-6 px-2 text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  초기화
+                </Button>
+              )}
+            </div>
             <CommandList>
               <CommandEmpty>검색 결과가 없습니다</CommandEmpty>
               <CommandGroup>
-                {/* Select All option */}
-                <CommandItem onSelect={handleSelectAll} className="font-medium">
-                  <Checkbox
-                    checked={
-                      selectedIds.length === universities.length &&
-                      universities.length > 0
-                    }
-                    className="mr-2"
-                  />
-                  전체 선택
-                  {selectedIds.length > 0 && (
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      ({selectedIds.length}/{universities.length})
-                    </span>
-                  )}
-                </CommandItem>
                 {/* University list */}
-                {universities.map((university) => (
-                  <CommandItem
-                    key={university.id}
-                    value={university.name}
-                    onSelect={() => handleToggle(university.id)}
-                  >
-                    <Checkbox
-                      checked={selectedIds.includes(university.id)}
-                      className="mr-2"
-                    />
-                    {university.shortName || university.name}
-                    {university.shortName && (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {university.name}
-                      </span>
-                    )}
-                  </CommandItem>
-                ))}
+                {universities.map((university) => {
+                  const isSelected = selectedIds.includes(university.id);
+                  const isDisabled = !isSelected && isMaxReached;
+                  return (
+                    <CommandItem
+                      key={university.id}
+                      value={university.name}
+                      onSelect={() => handleToggle(university.id)}
+                      disabled={isDisabled}
+                      className={isDisabled ? "opacity-50" : ""}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        disabled={isDisabled}
+                        className="mr-2"
+                      />
+                      {university.shortName || university.name}
+                      {university.shortName && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {university.name}
+                        </span>
+                      )}
+                    </CommandItem>
+                  );
+                })}
               </CommandGroup>
             </CommandList>
           </Command>
