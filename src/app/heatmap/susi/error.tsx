@@ -15,7 +15,7 @@ export default function Error({ error, reset }: ErrorProps) {
   }, [error]);
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="mx-auto py-8 px-4 md:px-6 lg:px-8">
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <h2 className="text-xl font-semibold">문제가 발생했습니다</h2>
         <p className="text-muted-foreground text-center max-w-md">
