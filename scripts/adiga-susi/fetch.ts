@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 /**
  * Fetch admission statistics (수시) from adiga.kr for all universities.
+ * Interactive comparison-based flow for reviewing and saving data.
  *
  * Usage:
  *   bun scripts/adiga-susi/fetch.ts [options]
  *
  * Options:
- *   --dry-run           Parse and show results without saving to DB
  *   --university <name> Process single university by name
  *   --delay <ms>        Delay between requests in ms (default: 1000)
  *   --help              Show this help message
@@ -15,46 +15,68 @@
 import { config } from "dotenv";
 config({ path: ".env" });
 
+import * as readline from "readline";
 import { db } from "@/lib/db";
 import { university, admissionStatistic } from "@/lib/db/schema";
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull, inArray, count } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { ADIGA_CONFIG } from "./config";
 import { parseAdmissionHtml, type AdmissionRecord } from "./parse-html";
 import { parseWithRetry as parseWithLLM } from "./parse-llm";
-import { InteractiveReviewer } from "./interactive";
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
-const dryRun = args.includes("--dry-run");
 const helpFlag = args.includes("--help");
-const interactiveMode = args.includes("--interactive") || args.includes("-i");
-const useLLM = args.includes("--llm");
 const universityIndex = args.indexOf("--university");
 const universityFilter = universityIndex !== -1 ? args[universityIndex + 1] : null;
 const delayIndex = args.indexOf("--delay");
 const delay = delayIndex !== -1 ? parseInt(args[delayIndex + 1] ?? "1000", 10) : 1000;
 
+// Readline interface for user input
+let rl: readline.Interface | null = null;
+
+function createReadline(): readline.Interface {
+  if (!rl) {
+    rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+  }
+  return rl;
+}
+
+function closeReadline(): void {
+  if (rl) {
+    rl.close();
+    rl = null;
+  }
+}
+
+async function prompt(question: string): Promise<string> {
+  const reader = createReadline();
+  return new Promise((resolve) => {
+    reader.question(question, (answer) => {
+      resolve(answer.trim().toLowerCase());
+    });
+  });
+}
+
 function printHelp(): void {
   console.log(`
 Fetch admission statistics (수시) from adiga.kr for all universities.
+Interactive comparison-based flow for reviewing and saving data.
 
 Usage:
   bun scripts/adiga-susi/fetch.ts [options]
 
 Options:
-  --interactive, -i   Enable interactive review mode before saving
-  --llm               Use LLM for parsing (handles complex table formats)
-  --dry-run           Parse and show results without saving to DB
   --university <name> Process single university by name
   --delay <ms>        Delay between requests in ms (default: 1000)
   --help              Show this help message
 
 Examples:
-  bun scripts/adiga-susi/fetch.ts --dry-run
-  bun scripts/adiga-susi/fetch.ts --interactive
-  bun scripts/adiga-susi/fetch.ts --llm --university "경희대"
-  bun scripts/adiga-susi/fetch.ts -i --university "서울대학교"
+  bun scripts/adiga-susi/fetch.ts
+  bun scripts/adiga-susi/fetch.ts --university "경희대"
   bun scripts/adiga-susi/fetch.ts --delay 2000
 `);
 }
@@ -83,54 +105,163 @@ async function fetchAdmissionData(adigaCode: string): Promise<string> {
   return response.text();
 }
 
-async function saveRecords(
+interface TypeStats {
+  admissionType: string;
+  count: number;
+}
+
+async function getDbStats(
   universityId: string,
-  records: AdmissionRecord[]
-): Promise<{ inserted: number; skipped: number }> {
-  let inserted = 0;
-  let skipped = 0;
-  const now = new Date();
+  years: number[]
+): Promise<TypeStats[]> {
+  const result = await db
+    .select({
+      admissionType: admissionStatistic.admissionType,
+      count: count(),
+    })
+    .from(admissionStatistic)
+    .where(
+      and(
+        eq(admissionStatistic.universityId, universityId),
+        inArray(admissionStatistic.year, years)
+      )
+    )
+    .groupBy(admissionStatistic.admissionType)
+    .orderBy(admissionStatistic.admissionType);
 
-  for (const record of records) {
-    try {
-      const result = await db
-        .insert(admissionStatistic)
-        .values({
-          id: nanoid(),
-          universityId,
-          departmentName: record.departmentName,
-          admissionType: record.admissionType,
-          year: record.year,
-          quota: record.quota,
-          competitionRate: record.competitionRate?.toString() ?? null,
-          waitlistRank: record.waitlistRank,
-          cut50: record.cut50,
-          cut70: record.cut70,
-          subjects: record.subjects,
-          isActive: true,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .onConflictDoNothing();
+  return result.map((r) => ({
+    admissionType: r.admissionType,
+    count: Number(r.count),
+  }));
+}
 
-      // Check if row was actually inserted (rowCount is 1 if inserted, 0 if skipped)
-      const rowCount = (result as unknown as { rowCount: number }).rowCount;
-      if (rowCount > 0) {
-        inserted++;
-      } else {
-        skipped++;
-      }
-    } catch (error) {
-      // Handle unique constraint violation as skip
-      skipped++;
+function getParsedStats(records: AdmissionRecord[]): TypeStats[] {
+  const byType: Record<string, number> = {};
+  for (const r of records) {
+    const type = r.admissionType || "(empty)";
+    byType[type] = (byType[type] || 0) + 1;
+  }
+
+  return Object.entries(byType)
+    .map(([admissionType, count]) => ({ admissionType, count }))
+    .sort((a, b) => a.admissionType.localeCompare(b.admissionType));
+}
+
+function printComparison(dbStats: TypeStats[], parsedStats: TypeStats[]): void {
+  const dbTotal = dbStats.reduce((sum, s) => sum + s.count, 0);
+  const parsedTotal = parsedStats.reduce((sum, s) => sum + s.count, 0);
+
+  console.log("\n  ┌─────────────────────────────────────────────────────────────────┐");
+  console.log("  │                    COMPARISON: DB vs PARSED                     │");
+  console.log("  ├─────────────────────────────────────────────────────────────────┤");
+
+  // Print DB stats
+  console.log(`  │ 📦 DATABASE (${dbStats.length} types, ${dbTotal} records):`);
+  if (dbStats.length === 0) {
+    console.log("  │    (empty)");
+  } else {
+    for (const s of dbStats) {
+      console.log(`  │    - ${s.admissionType}: ${s.count}`);
     }
   }
 
-  return { inserted, skipped };
+  console.log("  │");
+
+  // Print Parsed stats
+  console.log(`  │ 📝 PARSED (${parsedStats.length} types, ${parsedTotal} records):`);
+  if (parsedStats.length === 0) {
+    console.log("  │    (empty)");
+  } else {
+    for (const s of parsedStats) {
+      console.log(`  │    - ${s.admissionType}: ${s.count}`);
+    }
+  }
+
+  console.log("  └─────────────────────────────────────────────────────────────────┘");
+}
+
+async function deleteExistingRecords(
+  universityId: string,
+  years: number[]
+): Promise<number> {
+  const result = await db
+    .delete(admissionStatistic)
+    .where(
+      and(
+        eq(admissionStatistic.universityId, universityId),
+        inArray(admissionStatistic.year, years)
+      )
+    );
+  return (result as unknown as { rowCount: number }).rowCount;
+}
+
+async function saveRecords(
+  universityId: string,
+  records: AdmissionRecord[]
+): Promise<{ inserted: number; deleted: number }> {
+  const now = new Date();
+
+  // Get unique years from records
+  const years = [...new Set(records.map((r) => r.year))];
+
+  // Delete existing records for this university + years (replace strategy)
+  const deleted = await deleteExistingRecords(universityId, years);
+
+  // Insert all new records
+  const values = records.map((record) => ({
+    id: nanoid(),
+    universityId,
+    departmentName: record.departmentName,
+    admissionType: record.admissionType,
+    year: record.year,
+    quota: record.quota,
+    competitionRate: record.competitionRate?.toString() ?? null,
+    waitlistRank: record.waitlistRank,
+    cut50: record.cut50,
+    cut70: record.cut70,
+    subjects: record.subjects,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  }));
+
+  await db.insert(admissionStatistic).values(values);
+
+  return { inserted: records.length, deleted };
 }
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+type Action = "save" | "llm" | "skip" | "quit";
+
+async function askAction(afterLLM: boolean = false): Promise<Action> {
+  const options = afterLLM
+    ? "[S]ave / [N]ext / [Q]uit"
+    : "[S]ave parsed / [L]LM parse / [N]ext / [Q]uit";
+
+  const answer = await prompt(`\n  ${options}: `);
+
+  switch (answer) {
+    case "s":
+    case "save":
+      return "save";
+    case "l":
+    case "llm":
+      return afterLLM ? "skip" : "llm"; // L not valid after LLM
+    case "n":
+    case "next":
+    case "skip":
+      return "skip";
+    case "q":
+    case "quit":
+    case "exit":
+      return "quit";
+    default:
+      console.log("  Invalid option. Please try again.");
+      return askAction(afterLLM);
+  }
 }
 
 async function main(): Promise<void> {
@@ -139,19 +270,8 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  console.log("=== Adiga.kr 수시 Admission Data Fetcher ===\n");
-
-  if (dryRun) {
-    console.log("** DRY RUN MODE - No data will be saved **\n");
-  }
-
-  if (interactiveMode) {
-    console.log("** INTERACTIVE MODE - Review before saving **\n");
-  }
-
-  if (useLLM) {
-    console.log("** LLM MODE - Using GPT-4o-mini for parsing **\n");
-  }
+  console.log("=== Adiga.kr 수시 Admission Data Fetcher ===");
+  console.log("Interactive mode - review each university before saving\n");
 
   // Fetch universities with adigaCode
   const query = db
@@ -178,103 +298,77 @@ async function main(): Promise<void> {
   console.log(`Delay between requests: ${delay}ms\n`);
 
   let totalInserted = 0;
+  let totalDeleted = 0;
   let totalSkipped = 0;
-  let totalRecords = 0;
-
-  // Create interactive reviewer if needed
-  let reviewer: InteractiveReviewer | null = null;
-  if (interactiveMode) {
-    reviewer = new InteractiveReviewer({ dryRun });
-  }
 
   try {
     for (let i = 0; i < filteredUniversities.length; i++) {
       const univ = filteredUniversities[i]!;
       console.log(
-        `[${i + 1}/${filteredUniversities.length}] Processing: ${univ.name} (code: ${univ.adigaCode})`
+        `\n[${"=".repeat(60)}]`
       );
+      console.log(
+        `[${i + 1}/${filteredUniversities.length}] ${univ.name} (code: ${univ.adigaCode})`
+      );
+      console.log(`[${"=".repeat(60)}]`);
 
       try {
         // Fetch HTML data
+        console.log("  Fetching data from adiga.kr...");
         const html = await fetchAdmissionData(univ.adigaCode!);
 
-        // Parse records (hybrid approach: rule-based first, fallback to LLM if issues)
-        let records: AdmissionRecord[];
+        // Parse with rule-based parser
+        console.log("  Parsing with rule-based parser...");
+        let records = parseAdmissionHtml(html);
         let usedLLM = false;
 
-        if (useLLM) {
-          // Force LLM mode
+        // Get stats
+        const years = [...new Set(records.map((r) => r.year))];
+        const dbStats = await getDbStats(univ.id, years.length > 0 ? years : [2025]);
+        const parsedStats = getParsedStats(records);
+
+        // Show comparison
+        printComparison(dbStats, parsedStats);
+
+        // Ask user what to do
+        let action = await askAction(false);
+
+        // Handle LLM request
+        if (action === "llm") {
+          console.log("\n  Running LLM parser (this may take a moment)...");
           records = await parseWithLLM(html, { universityName: univ.name });
           usedLLM = true;
-        } else {
-          // Try rule-based first
-          records = parseAdmissionHtml(html);
 
-          // Check for issues that warrant LLM fallback
-          const emptyTypeCount = records.filter(r => !r.admissionType || r.admissionType.trim() === "").length;
-          const hasEmptyTypes = emptyTypeCount > records.length * 0.3; // >30% empty types
-          const suspiciouslyLow = records.length > 0 && records.length < 5;
-
-          if (hasEmptyTypes || suspiciouslyLow) {
-            console.log(`  ⚠️  Issues detected (${emptyTypeCount} empty types, ${records.length} records)`);
-            console.log(`  🔄 Falling back to LLM parser...`);
-            records = await parseWithLLM(html, { universityName: univ.name });
-            usedLLM = true;
+          // Show updated stats
+          const llmStats = getParsedStats(records);
+          console.log("\n  📊 LLM RESULT:");
+          console.log(`     ${llmStats.length} types, ${records.length} records`);
+          for (const s of llmStats) {
+            console.log(`     - ${s.admissionType}: ${s.count}`);
           }
+
+          // Ask again
+          action = await askAction(true);
         }
 
-        const parserLabel = usedLLM ? "[LLM]" : "[Rule]";
-        console.log(`  ${parserLabel} Parsed ${records.length} records`);
+        // Handle action
+        if (action === "quit") {
+          console.log("\n  Quitting...");
+          break;
+        }
 
-        if (records.length === 0) {
+        if (action === "skip") {
+          console.log(`  ⏭️  Skipped ${univ.name}`);
+          totalSkipped++;
           continue;
         }
 
-        if (interactiveMode && reviewer) {
-          // Interactive mode: review before saving
-          const result = await reviewer.reviewUniversity(univ.name, records);
-
-          if (result.action === "quit") {
-            console.log("\nQuitting...");
-            break;
-          }
-
-          if (result.action === "skip") {
-            console.log(`  Skipped ${univ.name}`);
-            continue;
-          }
-
-          // Save reviewed records
-          totalRecords += result.records.length;
-
-          if (!dryRun) {
-            const { inserted, skipped } = await saveRecords(univ.id, result.records);
-            console.log(`  Saved: ${inserted}, Skipped (duplicates): ${skipped}`);
-            totalInserted += inserted;
-            totalSkipped += skipped;
-          } else {
-            console.log(`  [DRY RUN] Would save ${result.records.length} records`);
-          }
-        } else {
-          // Non-interactive mode (existing behavior)
-          totalRecords += records.length;
-
-          if (dryRun) {
-            // Just print summary in dry run mode
-            const byType: Record<string, number> = {};
-            for (const r of records) {
-              byType[r.admissionType] = (byType[r.admissionType] || 0) + 1;
-            }
-            for (const [type, count] of Object.entries(byType)) {
-              console.log(`    - ${type}: ${count}`);
-            }
-          } else {
-            // Save to database
-            const { inserted, skipped } = await saveRecords(univ.id, records);
-            console.log(`  Inserted: ${inserted}, Skipped (duplicates): ${skipped}`);
-            totalInserted += inserted;
-            totalSkipped += skipped;
-          }
+        if (action === "save") {
+          const label = usedLLM ? "LLM" : "rule-based";
+          const { inserted, deleted } = await saveRecords(univ.id, records);
+          console.log(`  ✅ Saved ${inserted} records (deleted ${deleted} old) [${label}]`);
+          totalInserted += inserted;
+          totalDeleted += deleted;
         }
 
         // Delay before next request (except for last one)
@@ -282,25 +376,29 @@ async function main(): Promise<void> {
           await sleep(delay);
         }
       } catch (error) {
-        console.error(`  Error: ${error instanceof Error ? error.message : error}`);
+        console.error(`  ❌ Error: ${error instanceof Error ? error.message : error}`);
+        const answer = await prompt("  Continue to next? [Y/n]: ");
+        if (answer === "n" || answer === "no") {
+          break;
+        }
       }
     }
   } finally {
-    // Cleanup interactive reviewer
-    reviewer?.close();
+    closeReadline();
   }
 
   // Final summary
-  console.log("\n=== Final Summary ===");
+  console.log("\n" + "=".repeat(60));
+  console.log("                    FINAL SUMMARY");
+  console.log("=".repeat(60));
   console.log(`Universities processed: ${filteredUniversities.length}`);
-  console.log(`Total records parsed: ${totalRecords}`);
-  if (!dryRun) {
-    console.log(`Total inserted: ${totalInserted}`);
-    console.log(`Total skipped (duplicates): ${totalSkipped}`);
-  }
+  console.log(`Total inserted: ${totalInserted}`);
+  console.log(`Total deleted: ${totalDeleted}`);
+  console.log(`Total skipped: ${totalSkipped}`);
 }
 
 main().catch((error) => {
+  closeReadline();
   console.error("Fatal error:", error);
   process.exit(1);
 });
