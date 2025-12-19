@@ -5,7 +5,7 @@
 ## Project Status
 
 **Current Phase**: Active Development - Heatmap Feature
-**Last Updated**: 2025-12-18
+**Last Updated**: 2025-12-19
 
 ---
 
@@ -177,11 +177,24 @@ bun qa:manage stats                      # Show question statistics
 ### Adiga Data Fetcher Commands
 
 ```bash
-bun adiga:fetch                      # Fetch all universities
-bun adiga:fetch --dry-run            # Parse without saving
-bun adiga:fetch --university "서울대" # Single university
-bun adiga:fetch --delay 2000         # Custom delay between requests
+bun adiga:fetch                          # Fetch all universities
+bun adiga:fetch --dry-run                # Parse without saving
+bun adiga:fetch --university "서울대"     # Single university
+bun adiga:fetch --llm                    # Use LLM parser (GPT-4o-mini) for complex tables
+bun adiga:fetch --llm --university "홍익대" --dry-run  # LLM for specific university
+bun adiga:fetch --delay 2000             # Custom delay between requests
+bun adiga:fetch --interactive            # Interactive review mode before saving
 ```
+
+**Parser Behavior (Hybrid Approach):**
+- **Default**: Tries rule-based first (~1s), auto-fallbacks to LLM if issues detected
+- **`--llm` flag**: Forces LLM parser for all universities
+
+Auto-fallback triggers when:
+- More than 30% of records have empty admission types
+- Suspiciously low record count (<5 records)
+
+The LLM parser automatically cleans HTML (95%+ size reduction) before processing with GPT-4o-mini.
 
 ---
 
@@ -205,7 +218,9 @@ scripts/
 ├── adiga-susi/                         # Adiga.kr data fetcher
 │   ├── fetch.ts                        # Main script - fetches 수시 admission data
 │   ├── config.ts                       # Static config (CSRF tokens, headers)
-│   └── parse-html.ts                   # HTML parser for admission tables
+│   ├── parse-html.ts                   # Rule-based HTML parser for admission tables
+│   ├── parse-llm.ts                    # LLM-based parser using GPT-4o-mini (for complex tables)
+│   └── interactive.ts                  # Interactive review mode for manual verification
 ├── qa/
 │   └── manage.ts                       # Q&A management CLI
 └── vector-store/

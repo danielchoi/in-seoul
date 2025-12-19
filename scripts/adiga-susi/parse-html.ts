@@ -60,6 +60,110 @@ function parseStringOrNull(str: string): string | null {
 }
 
 /**
+ * Check if text looks like an admission type name (not a table header).
+ */
+function isAdmissionTypeName(text: string): boolean {
+  // Skip if empty or too long
+  if (!text || text.length > 50) return false;
+
+  // Skip common header keywords
+  const headerKeywords = [
+    "모집단위",
+    "모집인원",
+    "경쟁률",
+    "충원",
+    "cut",
+    "교과목",
+    "50%",
+    "70%",
+    "합격",
+    "순위",
+  ];
+  if (headerKeywords.some((kw) => text.includes(kw))) return false;
+
+  // Known admission type patterns
+  const admissionTypePatterns = [
+    "전형",
+    "균형",
+    "우수",
+    "국제",
+    "기회",
+    "특별",
+    "일반",
+    "지역",
+    "고른기회",
+    "활동우수형",
+    "면접형",
+    "서류형",
+    "추천형",
+    "학종",
+    "교과",
+    "논술",
+    "실기",
+    "특기자",
+  ];
+
+  return admissionTypePatterns.some((pattern) => text.includes(pattern));
+}
+
+/**
+ * Extract admission type from colspan header cells.
+ * Universities like 연세대 use colspan cells for admission type headers.
+ */
+function extractColspanAdmissionType(row: string): string | null {
+  // Look for td with colspan >= 4
+  const colspanMatch = row.match(/<td[^>]*colspan=["']?(\d+)["']?[^>]*>([\s\S]*?)<\/td>/i);
+  if (!colspanMatch) return null;
+
+  const colspan = parseInt(colspanMatch[1]!, 10);
+  if (colspan < 4) return null;
+
+  // Extract text content
+  const cellHtml = colspanMatch[2] ?? "";
+  const text = cellHtml
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Check if it looks like an admission type
+  if (text && isAdmissionTypeName(text)) {
+    return text;
+  }
+
+  return null;
+}
+
+/**
+ * Extract section header (campus + admission type) from paragraph before table.
+ * Pattern: [YYYY학년도] 서울캠퍼스 학생부종합전형(면접형)
+ */
+function extractSectionHeader(html: string, tableStartIndex: number): string | null {
+  // Look backwards from the table to find section header in <p> tag
+  const searchStart = Math.max(0, tableStartIndex - 2000);
+  const beforeTable = html.slice(searchStart, tableStartIndex);
+
+  // Strip HTML tags for easier matching
+  const textContent = beforeTable
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ");
+
+  // Look for patterns like "서울캠퍼스 학생부종합전형" or "글로벌캠퍼스 학생부종합전형"
+  // The admission type may have spaces like "학생부종합전형 ( 면접형 )"
+  const campusMatch = textContent.match(
+    /(서울캠퍼스|글로벌캠퍼스)\s+(학생부[^학]*전형[^)]*\)?)/i
+  );
+  if (campusMatch) {
+    const campus = campusMatch[1]!;
+    const admissionType = campusMatch[2]!.trim();
+    return `${campus} ${admissionType}`;
+  }
+
+  return null;
+}
+
+/**
  * Extract admission data from HTML content.
  * Handles table parsing with header detection and merged cells.
  */
@@ -87,13 +191,27 @@ export function parseAdmissionHtml(htmlContent: string): AdmissionRecord[] {
   }
 
   // Parse HTML using regex-based extraction
-  // Find all table rows
-  const tableMatch = htmlContent.match(/<table[^>]*>[\s\S]*?<\/table>/gi);
-  if (!tableMatch) {
+  // Find all tables with their positions
+  const tableRegex = /<table[^>]*>[\s\S]*?<\/table>/gi;
+  const tables: { html: string; index: number }[] = [];
+  let match;
+  while ((match = tableRegex.exec(htmlContent)) !== null) {
+    tables.push({ html: match[0], index: match.index });
+  }
+
+  if (tables.length === 0) {
     return records;
   }
 
-  for (const table of tableMatch) {
+  for (const { html: table, index: tableIndex } of tables) {
+    // Check for section header before this table (e.g., "서울캠퍼스 학생부종합전형")
+    // This takes precedence over in-table headers
+    const sectionHeader = extractSectionHeader(htmlContent, tableIndex);
+    const hasCampusHeader = sectionHeader !== null;
+    if (sectionHeader) {
+      currentAdmissionType = sectionHeader;
+    }
+
     // Extract rows from tbody or table
     const tbodyMatch = table.match(/<tbody[^>]*>([\s\S]*?)<\/tbody>/i);
     const rowsHtml = tbodyMatch?.[1] ?? table;
@@ -102,6 +220,14 @@ export function parseAdmissionHtml(htmlContent: string): AdmissionRecord[] {
     if (!rows) continue;
 
     for (const row of rows) {
+      // Check for colspan admission type header (연세대 style)
+      // But don't override if we already have a campus header from section
+      const colspanType = extractColspanAdmissionType(row);
+      if (colspanType && !hasCampusHeader) {
+        currentAdmissionType = colspanType;
+        // Don't continue - this row might also have other cells we need to process
+      }
+
       // Extract cells from the row
       const cells: string[] = [];
       const cellMatches = row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi);
@@ -127,8 +253,9 @@ export function parseAdmissionHtml(htmlContent: string): AdmissionRecord[] {
         continue;
       }
 
-      // Detect admission type in header
-      if (cells.some((cell) => cell.includes("전형"))) {
+      // Detect admission type in header (서울대 style - cells containing "전형")
+      // But don't override if we already have a campus header from section
+      if (!hasCampusHeader && cells.some((cell) => cell.includes("전형"))) {
         for (const cell of cells) {
           if (cell.includes("전형")) {
             currentAdmissionType = cell.trim();
@@ -138,18 +265,18 @@ export function parseAdmissionHtml(htmlContent: string): AdmissionRecord[] {
         continue;
       }
 
-      // Skip header rows
+      // Skip header rows - check first cell only to avoid false positives
+      // (data rows may contain keywords like "교과목" in the subjects field)
+      const firstCell = cells[0] || "";
       const headerKeywords = [
         "모집단위",
         "모집인원",
         "경쟁률",
         "충원",
-        "cut",
-        "교과목",
         "50%",
         "70%",
       ];
-      if (headerKeywords.some((kw) => rowText.includes(kw))) {
+      if (headerKeywords.some((kw) => firstCell.includes(kw))) {
         continue;
       }
 
@@ -171,6 +298,14 @@ export function parseAdmissionHtml(htmlContent: string): AdmissionRecord[] {
           continue;
         }
 
+        const cut50 = parseStringOrNull(cells[4] || "");
+        const cut70 = parseStringOrNull(cells[5] || "");
+
+        // Skip rows where both cut50 and cut70 are empty
+        if (!cut50 && !cut70) {
+          continue;
+        }
+
         const record: AdmissionRecord = {
           year: currentYear,
           admissionType: currentAdmissionType,
@@ -178,8 +313,8 @@ export function parseAdmissionHtml(htmlContent: string): AdmissionRecord[] {
           quota: parseIntOrNull(cells[1] || ""),
           competitionRate: parseCompetitionRate(cells[2] || ""),
           waitlistRank: parseIntOrNull(cells[3] || ""),
-          cut50: parseStringOrNull(cells[4] || ""),
-          cut70: parseStringOrNull(cells[5] || ""),
+          cut50,
+          cut70,
           subjects: parseStringOrNull(cells[6] || ""),
         };
 
